@@ -18,7 +18,12 @@ class KnowledgeLoader:
     """Loads knowledge corpus from directory structures."""
 
     def __init__(self, knowledge_base_path: str = "./knowledge"):
-        self.knowledge_base_path = knowledge_base_path
+        # Auto-resolve relative to project root if './knowledge' is not in cwd
+        if not os.path.exists(knowledge_base_path) and os.path.exists(os.path.join("..", "knowledge")):
+            self.knowledge_base_path = os.path.join("..", "knowledge")
+        else:
+            self.knowledge_base_path = knowledge_base_path
+
 
     def load_all_documents(self) -> List[KnowledgeDocument]:
         documents: List[KnowledgeDocument] = []
