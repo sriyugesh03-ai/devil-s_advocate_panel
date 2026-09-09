@@ -1,7 +1,8 @@
 import json
 import logging
 import re
-from typing import Optional, Type, TypeVar
+import asyncio
+from typing import Optional, Type, TypeVar, List
 import httpx
 from pydantic import BaseModel
 from backend.app.llm.base import BaseLLMAdapter
@@ -11,11 +12,24 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
 class GeminiAdapter(BaseLLMAdapter):
-    """Google Gemini Adapter supporting gemini-2.5-flash / gemini-1.5-pro with structured output."""
+    """Google Gemini Adapter with automatic model fallback, retry on 429 rate limits, and structured JSON parsing."""
+
+    # Ordered list of valid Gemini models to fallback across
+    CANDIDATE_MODELS = [
+        "gemini-2.5-flash",
+        "gemini-1.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-pro",
+    ]
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
-        self.api_key = api_key or settings.GEMINI_API_KEY
-        self.model = model or settings.GEMINI_MODEL or "gemini-2.5-flash"
+        self.api_key = (api_key or settings.GEMINI_API_KEY).strip()
+        requested_model = (model or settings.GEMINI_MODEL or "gemini-2.5-flash").strip()
+        # If model name has non-existent version like 3.5, start with 2.5-flash
+        if requested_model == "gemini-3.5-flash":
+            self.model = "gemini-2.5-flash"
+        else:
+            self.model = requested_model
         self.base_url = "https://generativelanguage.googleapis.com/v1beta/models"
 
     async def generate_text(
@@ -28,27 +42,45 @@ class GeminiAdapter(BaseLLMAdapter):
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY is not configured in environment.")
 
-        endpoint = f"{self.base_url}/{self.model}:generateContent?key={self.api_key}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": max_tokens,
-            },
-        }
-        if system_instruction:
-            payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+        models_to_try = [self.model] + [m for m in self.CANDIDATE_MODELS if m != self.model]
+        last_error = None
 
-        async with httpx.AsyncClient(timeout=45.0) as client:
-            response = await client.post(endpoint, json=payload)
-            response.raise_for_status()
-            data = response.json()
-            try:
-                text = data["candidates"][0]["content"]["parts"][0]["text"]
-                return text.strip()
-            except (KeyError, IndexError) as e:
-                logger.error(f"Failed to parse Gemini response: {data}")
-                raise ValueError(f"Unexpected response structure from Gemini API: {e}")
+        for model_name in models_to_try:
+            endpoint = f"{self.base_url}/{model_name}:generateContent?key={self.api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": temperature,
+                    "maxOutputTokens": max_tokens,
+                },
+            }
+            if system_instruction:
+                payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+
+            # Try up to 2 retries per model for rate limits
+            for attempt in range(2):
+                try:
+                    async with httpx.AsyncClient(timeout=35.0) as client:
+                        response = await client.post(endpoint, json=payload)
+                        
+                        if response.status_code == 429:
+                            logger.warning(f"Gemini {model_name} rate limit (429) on attempt {attempt+1}. Backing off...")
+                            await asyncio.sleep(1.5 * (attempt + 1))
+                            continue
+
+                        response.raise_for_status()
+                        data = response.json()
+                        text = data["candidates"][0]["content"]["parts"][0]["text"]
+                        self.model = model_name  # Stick with the working model
+                        return text.strip()
+
+                except Exception as e:
+                    last_error = e
+                    logger.warning(f"Gemini call with {model_name} (attempt {attempt+1}) encountered: {e}")
+                    if attempt == 0 and "429" in str(e):
+                        await asyncio.sleep(1.5)
+
+        raise last_error or ValueError("All Gemini candidate models failed.")
 
     async def generate_structured(
         self,
@@ -84,7 +116,6 @@ class GeminiAdapter(BaseLLMAdapter):
             cleaned = cleaned[:-3]
         cleaned = cleaned.strip()
 
-        # Regex fallback to find first JSON object or array
         match = re.search(r"(\{.*\}|\[.*\])", cleaned, re.DOTALL)
         if match:
             cleaned = match.group(1)
@@ -93,5 +124,5 @@ class GeminiAdapter(BaseLLMAdapter):
             parsed = json.loads(cleaned)
             return model_cls.model_validate(parsed)
         except Exception as e:
-            logger.error(f"JSON validation error for {model_cls.__name__}: {e}. Raw content: {cleaned[:500]}")
+            logger.error(f"JSON validation error for {model_cls.__name__}: {e}. Raw: {cleaned[:300]}")
             raise ValueError(f"Could not parse LLM output into {model_cls.__name__}: {e}")

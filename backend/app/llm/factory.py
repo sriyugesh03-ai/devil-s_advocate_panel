@@ -1,30 +1,95 @@
 import logging
-from typing import Optional
+from typing import Optional, Type, TypeVar
+from pydantic import BaseModel
 from backend.app.llm.base import BaseLLMAdapter
 from backend.app.llm.gemini import GeminiAdapter
 from backend.app.llm.groq import GroqAdapter
 from backend.app.core.config import settings
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T", bound=BaseModel)
+
+class ResilientLLMAdapter(BaseLLMAdapter):
+    """Wrapper that tries primary LLM provider (Gemini/Groq) and automatically falls back to the other on failure."""
+
+    def __init__(self, primary: BaseLLMAdapter, secondary: Optional[BaseLLMAdapter] = None):
+        self.primary = primary
+        self.secondary = secondary
+
+    async def generate_text(
+        self,
+        prompt: str,
+        system_instruction: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+    ) -> str:
+        try:
+            return await self.primary.generate_text(
+                prompt=prompt,
+                system_instruction=system_instruction,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except Exception as e:
+            logger.warning(f"Primary LLM adapter failed: {e}.")
+            if self.secondary:
+                logger.info("Flipping to secondary LLM adapter fallback...")
+                return await self.secondary.generate_text(
+                    prompt=prompt,
+                    system_instruction=system_instruction,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+            raise e
+
+    async def generate_structured(
+        self,
+        prompt: str,
+        response_model: Type[T],
+        system_instruction: Optional[str] = None,
+        temperature: float = 0.2,
+    ) -> T:
+        try:
+            return await self.primary.generate_structured(
+                prompt=prompt,
+                response_model=response_model,
+                system_instruction=system_instruction,
+                temperature=temperature,
+            )
+        except Exception as e:
+            logger.warning(f"Primary LLM structured generation failed: {e}.")
+            if self.secondary:
+                logger.info("Flipping to secondary LLM adapter fallback for structured output...")
+                return await self.secondary.generate_structured(
+                    prompt=prompt,
+                    response_model=response_model,
+                    system_instruction=system_instruction,
+                    temperature=temperature,
+                )
+            raise e
 
 class LLMFactory:
-    """Factory for instantiating and managing provider-agnostic LLM adapters."""
+    """Factory creating resilient LLM adapters with auto-fallback between Gemini and Groq."""
 
     @staticmethod
     def get_adapter(provider: Optional[str] = None) -> BaseLLMAdapter:
         selected_provider = (provider or settings.DEFAULT_LLM_PROVIDER or "gemini").lower()
+        
+        has_gemini = bool(settings.GEMINI_API_KEY.strip())
+        has_groq = bool(settings.GROQ_API_KEY.strip())
 
-        if selected_provider == "groq" or (not settings.GEMINI_API_KEY and settings.GROQ_API_KEY):
-            logger.info(f"Initializing Groq LLM Adapter (Model: {settings.GROQ_MODEL})")
-            return GroqAdapter()
-        elif selected_provider == "gemini" or settings.GEMINI_API_KEY:
-            logger.info(f"Initializing Gemini LLM Adapter (Model: {settings.GEMINI_MODEL})")
-            return GeminiAdapter()
+        gemini_adapter = GeminiAdapter() if has_gemini else None
+        groq_adapter = GroqAdapter() if has_groq else None
+
+        if selected_provider == "groq" and groq_adapter:
+            return ResilientLLMAdapter(primary=groq_adapter, secondary=gemini_adapter)
+        elif has_gemini and gemini_adapter:
+            return ResilientLLMAdapter(primary=gemini_adapter, secondary=groq_adapter)
+        elif has_groq and groq_adapter:
+            return ResilientLLMAdapter(primary=groq_adapter, secondary=None)
         else:
-            # If neither key is provided yet, default to Gemini adapter (which will cleanly prompt for key upon call)
-            logger.warning("No API key configured for Gemini or Groq. Defaulting to GeminiAdapter.")
+            # Fallback placeholder
             return GeminiAdapter()
 
-# Convenience accessor
 def get_llm_service(provider: Optional[str] = None) -> BaseLLMAdapter:
     return LLMFactory.get_adapter(provider=provider)

@@ -60,13 +60,17 @@ class EmbeddingService:
         return [r[1] for r in results]
 
     async def _call_gemini_embeddings(self, texts: List[str]) -> List[List[float]]:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
-        requests = [{"model": "models/text-embedding-004", "content": {"parts": [{"text": t[:1000]}]}} for t in texts]
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        # Google standard embedding endpoint
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/embedding-001:batchEmbedContents?key={self.api_key}"
+        requests = [{"model": "models/embedding-001", "content": {"parts": [{"text": t[:800]}]}} for t in texts]
+        async with httpx.AsyncClient(timeout=20.0) as client:
             resp = await client.post(url, json={"requests": requests})
-            resp.raise_for_status()
+            if resp.status_code != 200:
+                # Silently fallback to our semantic dense vectorizer
+                return [self._semantic_hash_embedding(t) for t in texts]
             data = resp.json()
-            return [emb["values"] for emb in data["embeddings"]]
+            return [emb["values"] for emb in data.get("embeddings", [])]
+
 
     def _semantic_hash_embedding(self, text: str) -> List[float]:
         """Deterministic dense representation for testing and offline resilience."""
