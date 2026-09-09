@@ -4,11 +4,15 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { submitPitch } from '../lib/api';
+import { useAppAuth } from './AuthProvider';
 import { Flame, ArrowRight, Loader2, Sparkles, Building2, Lightbulb, Users, DollarSign } from 'lucide-react';
 
-export default function PitchForm() {
+interface PitchFormBaseProps {
+  getToken?: () => Promise<string | null>;
+}
+
+function PitchFormBase({ getToken }: PitchFormBaseProps) {
   const router = useRouter();
-  const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,10 +39,12 @@ export default function PitchForm() {
 
     try {
       let token: string | null = null;
-      try {
-        token = await getToken();
-      } catch (authErr) {
-        // Continue unauthenticated if user is guest
+      if (getToken) {
+        try {
+          token = await getToken();
+        } catch (authErr) {
+          // Continue unauthenticated if user is guest
+        }
       }
       const session = await submitPitch(formData, token);
       router.push(`/session/${session.session_id}`);
@@ -223,4 +229,17 @@ export default function PitchForm() {
       </div>
     </form>
   );
+}
+
+function ClerkPitchForm() {
+  const { getToken } = useAuth();
+  return <PitchFormBase getToken={getToken} />;
+}
+
+export default function PitchForm() {
+  const { isClerkConfigured } = useAppAuth();
+  if (isClerkConfigured) {
+    return <ClerkPitchForm />;
+  }
+  return <PitchFormBase />;
 }

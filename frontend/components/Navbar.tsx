@@ -18,13 +18,53 @@ import {
   Activity, 
   ShieldCheck, 
   Menu, 
-  X 
+  X,
+  User 
 } from "lucide-react";
 import { checkBackendHealth } from "../lib/api";
+import { useAppAuth } from "./AuthProvider";
+
+function ClerkAuthButtons() {
+  const { user, isLoaded } = useUser();
+  return (
+    <>
+      <SignedOut>
+        <SignInButton mode="modal">
+          <button className="px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors">
+            Sign In
+          </button>
+        </SignInButton>
+        <SignUpButton mode="modal">
+          <button className="px-3.5 py-1.5 text-sm font-semibold rounded-lg bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/20 transition-all">
+            Sign Up
+          </button>
+        </SignUpButton>
+      </SignedOut>
+
+      <SignedIn>
+        <div className="flex items-center gap-3">
+          {isLoaded && user && (
+            <span className="text-xs text-slate-300 font-medium hidden lg:inline-block">
+              {user.firstName || user.emailAddresses[0]?.emailAddress?.split("@")[0]}
+            </span>
+          )}
+          <UserButton 
+            afterSignOutUrl="/" 
+            appearance={{
+              elements: {
+                userButtonAvatarBox: "w-8 h-8 ring-2 ring-rose-500/40 hover:ring-rose-500 transition-all",
+              }
+            }}
+          />
+        </div>
+      </SignedIn>
+    </>
+  );
+}
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { user, isLoaded } = useUser();
+  const { isClerkConfigured } = useAppAuth();
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -108,44 +148,20 @@ export default function Navbar() {
 
           {/* Clerk Auth Integration */}
           <div className="flex items-center gap-3 pl-2 border-l border-white/10">
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button className="px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors">
-                  Sign In
-                </button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button className="px-3.5 py-1.5 text-sm font-semibold rounded-lg bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/20 transition-all">
-                  Sign Up
-                </button>
-              </SignUpButton>
-            </SignedOut>
-
-            <SignedIn>
-              <div className="flex items-center gap-3">
-                {isLoaded && user && (
-                  <span className="text-xs text-slate-300 font-medium hidden lg:inline-block">
-                    {user.firstName || user.emailAddresses[0]?.emailAddress?.split("@")[0]}
-                  </span>
-                )}
-                <UserButton 
-                  afterSignOutUrl="/" 
-                  appearance={{
-                    elements: {
-                      userButtonAvatarBox: "w-8 h-8 ring-2 ring-rose-500/40 hover:ring-rose-500 transition-all",
-                    }
-                  }}
-                />
+            {isClerkConfigured ? (
+              <ClerkAuthButtons />
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-300" title="Connect Clerk keys in .env.local to enable account login">
+                <User className="w-3.5 h-3.5 text-rose-400" />
+                <span>Founder Mode</span>
               </div>
-            </SignedIn>
+            )}
           </div>
         </div>
 
         {/* Mobile menu button */}
         <div className="flex md:hidden items-center gap-2">
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
+          {isClerkConfigured && <ClerkAuthButtons />}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 rounded-lg bg-white/5 text-slate-300 hover:text-white"
