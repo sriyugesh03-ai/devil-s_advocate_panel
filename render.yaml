@@ -50,10 +50,7 @@ services:
       - key: NODE_VERSION
         value: 20.11.0
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: devils-advocate-backend
-          property: host
+        value: https://devils-advocate-backend.onrender.com
       - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
         sync: false
       - key: CLERK_SECRET_KEY

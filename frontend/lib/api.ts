@@ -1,7 +1,14 @@
 import { StartupPitch, SessionState, FinalVerdict } from '../types';
 
 function getApiBaseUrl(): string {
-  let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8999';
+  const prodDefault = 'https://devils-advocate-backend.onrender.com';
+  const devDefault = 'http://localhost:8999';
+  
+  let url = process.env.NEXT_PUBLIC_API_URL;
+  if (!url || url.trim() === '') {
+    url = process.env.NODE_ENV === 'production' ? prodDefault : devDefault;
+  }
+  
   url = url.trim();
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     url = `https://${url}`;
@@ -10,6 +17,7 @@ function getApiBaseUrl(): string {
 }
 
 const API_BASE_URL = getApiBaseUrl();
+
 
 
 
