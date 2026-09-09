@@ -1,3 +1,16 @@
+import sys
+import os
+from pathlib import Path
+
+# Add project root and backend dir to sys.path so both `app.main:app` and `backend.app.main:app` work anywhere
+CURRENT_DIR = Path(__file__).resolve().parent  # app
+BACKEND_DIR = CURRENT_DIR.parent              # backend
+ROOT_DIR = BACKEND_DIR.parent                 # root
+
+for path_dir in [str(ROOT_DIR), str(BACKEND_DIR)]:
+    if path_dir not in sys.path:
+        sys.path.insert(0, path_dir)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
