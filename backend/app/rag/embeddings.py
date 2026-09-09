@@ -1,7 +1,7 @@
 import math
 import re
 import numpy as np
-from typing import List
+from typing import List, Dict
 import httpx
 import logging
 from backend.app.core.config import settings
@@ -9,25 +9,55 @@ from backend.app.core.config import settings
 logger = logging.getLogger(__name__)
 
 class EmbeddingService:
-    """Provides vector embeddings using Gemini API with deterministic dense fallback."""
+    """Provides cached vector embeddings using Gemini API with deterministic dense fallback."""
 
     def __init__(self, api_key: str = None):
         self.api_key = api_key or settings.GEMINI_API_KEY
         self.dim = 384
+        self._cache: Dict[str, List[float]] = {}
 
     async def get_embedding(self, text: str) -> List[float]:
+        # Fast cache lookup
+        cache_key = text.strip().lower()
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
         embeddings = await self.get_embeddings([text])
+        self._cache[cache_key] = embeddings[0]
         return embeddings[0]
 
     async def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        if self.api_key:
-            try:
-                # Gemini embedding API call
-                return await self._call_gemini_embeddings(texts)
-            except Exception as e:
-                logger.warning(f"Gemini embedding API failed: {e}. Falling back to semantic token hash vectorizer.")
-        
-        return [self._semantic_hash_embedding(t) for t in texts]
+        # Check cache for each
+        results = []
+        uncached_texts = []
+        uncached_indices = []
+
+        for idx, t in enumerate(texts):
+            ck = t.strip().lower()
+            if ck in self._cache:
+                results.append((idx, self._cache[ck]))
+            else:
+                uncached_texts.append(t)
+                uncached_indices.append(idx)
+
+        if uncached_texts:
+            new_embeddings = []
+            if self.api_key:
+                try:
+                    new_embeddings = await self._call_gemini_embeddings(uncached_texts)
+                except Exception as e:
+                    logger.warning(f"Gemini embedding API failed: {e}. Falling back to semantic token hash vectorizer.")
+                    new_embeddings = [self._semantic_hash_embedding(t) for t in uncached_texts]
+            else:
+                new_embeddings = [self._semantic_hash_embedding(t) for t in uncached_texts]
+
+            for orig_idx, t, emb in zip(uncached_indices, uncached_texts, new_embeddings):
+                self._cache[t.strip().lower()] = emb
+                results.append((orig_idx, emb))
+
+        # Sort back to original input order
+        results.sort(key=lambda x: x[0])
+        return [r[1] for r in results]
 
     async def _call_gemini_embeddings(self, texts: List[str]) -> List[List[float]]:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
@@ -46,7 +76,6 @@ class EmbeddingService:
             return vec.tolist()
 
         for i, word in enumerate(words):
-            # Map word hash into dimension buckets
             bucket = hash(word) % self.dim
             sign = 1.0 if (hash(word) // self.dim) % 2 == 0 else -1.0
             vec[bucket] += sign * (1.0 / math.sqrt(i + 1))
