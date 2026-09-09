@@ -1,6 +1,17 @@
 import { StartupPitch, SessionState, FinalVerdict } from '../types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8999';
+function getApiBaseUrl(): string {
+  let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8999';
+  url = url.trim();
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`;
+  }
+  return url.replace(/\/+$/, '');
+}
+
+const API_BASE_URL = getApiBaseUrl();
+
+
 
 function getAuthHeaders(token?: string | null): Record<string, string> {
   const headers: Record<string, string> = {
