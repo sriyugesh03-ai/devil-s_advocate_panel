@@ -1,0 +1,62 @@
+services:
+  # --------------------------------------------------
+  # 1. FastAPI Backend Service (Python on Render)
+  # --------------------------------------------------
+  - type: web
+    name: devils-advocate-backend
+    env: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install --no-cache-dir -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1 --timeout-keep-alive 30"
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: PORT
+        value: 8999
+      - key: ENVIRONMENT
+        value: production
+      - key: DEFAULT_LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: MONGO_DB_URL
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: devils_advocate
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: "*"
+
+  # --------------------------------------------------
+  # 2. Next.js Frontend Service (Node.js on Render)
+  # --------------------------------------------------
+  - type: web
+    name: devils-advocate-frontend
+    env: node
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: "npm ci && npm run build"
+    startCommand: "npm run start -- -p $PORT"
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: devils-advocate-backend
+          property: host
+      - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
