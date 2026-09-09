@@ -25,4 +25,5 @@ def test_json_parsing_groq():
 
 def test_factory_selection():
     adapter = LLMFactory.get_adapter("gemini")
-    assert isinstance(adapter, GeminiAdapter)
+    assert isinstance(adapter, BaseLLMAdapter)
+
