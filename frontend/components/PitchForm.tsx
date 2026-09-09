@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import { submitPitch } from '../lib/api';
 import { Flame, ArrowRight, Loader2, Sparkles, Building2, Lightbulb, Users, DollarSign } from 'lucide-react';
 
 export default function PitchForm() {
   const router = useRouter();
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +34,13 @@ export default function PitchForm() {
     setError(null);
 
     try {
-      const session = await submitPitch(formData);
+      let token: string | null = null;
+      try {
+        token = await getToken();
+      } catch (authErr) {
+        // Continue unauthenticated if user is guest
+      }
+      const session = await submitPitch(formData, token);
       router.push(`/session/${session.session_id}`);
     } catch (err: any) {
       setError(err.message || 'Failed to submit pitch.');

@@ -17,10 +17,10 @@ class SessionService:
     _in_memory_sessions: Dict[str, Dict[str, Any]] = {}
 
     @classmethod
-    async def create_session(cls, pitch_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def create_session(cls, pitch_data: Dict[str, Any], user_id: Optional[str] = None, user_email: Optional[str] = None) -> Dict[str, Any]:
         session_id = generate_session_id()
         thread_id = generate_thread_id(session_id)
-        now_iso = datetime.datetime.utcnow().isoformat() + "Z"
+        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
         pitch_record = {
             **pitch_data,
@@ -31,6 +31,8 @@ class SessionService:
         initial_state = {
             "session_id": session_id,
             "thread_id": thread_id,
+            "user_id": user_id,
+            "user_email": user_email,
             "pitch": pitch_record,
             "current_round": 1,
             "total_rounds": 3,
@@ -49,6 +51,7 @@ class SessionService:
         # Save session
         cls._in_memory_sessions[session_id] = initial_state
         await MongoStateCheckpointer.save_session_state(session_id, initial_state)
+
 
         # Run Graph for Round 1
         try:
@@ -70,7 +73,7 @@ class SessionService:
             updated_state["current_challenges"] = result.get("current_challenges", [])
             updated_state["status"] = SessionStatus.AWAITING_USER.value
             updated_state["retrieved_contexts"] = result.get("retrieved_contexts", {})
-            updated_state["updated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+            updated_state["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
             cls._in_memory_sessions[session_id] = updated_state
             await MongoStateCheckpointer.save_session_state(session_id, updated_state)
@@ -94,9 +97,27 @@ class SessionService:
         return cls._in_memory_sessions.get(session_id)
 
     @classmethod
+    async def list_user_sessions(cls, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Retrieves all sessions belonging to the user or all available sessions."""
+        db = get_db()
+        if db is not None:
+            try:
+                query = {"user_id": user_id} if user_id else {}
+                cursor = db.sessions.find(query, {"_id": 0}).sort("created_at", -1)
+                return await cursor.to_list(length=100)
+            except Exception as e:
+                logger.error(f"Error querying user sessions from MongoDB: {e}")
+
+        # In-memory fallback
+        if user_id:
+            return [s for s in cls._in_memory_sessions.values() if s.get("user_id") == user_id]
+        return list(cls._in_memory_sessions.values())
+
+    @classmethod
     async def update_session(cls, session_id: str, state_data: Dict[str, Any]):
-        state_data["updated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+        state_data["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         cls._in_memory_sessions[session_id] = state_data
         await MongoStateCheckpointer.save_session_state(session_id, state_data)
+
 
 session_service = SessionService()

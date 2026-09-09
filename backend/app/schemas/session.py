@@ -21,6 +21,8 @@ class UserResponseSubmit(BaseModel):
 class SessionStateResponse(BaseModel):
     session_id: str
     thread_id: str
+    user_id: Optional[str] = None
+    user_email: Optional[str] = None
     pitch: StartupPitch
     current_round: int
     total_rounds: int = 3
@@ -30,3 +32,4 @@ class SessionStateResponse(BaseModel):
     created_at: str
     updated_at: str
     error_message: Optional[str] = None
+

@@ -1,9 +1,18 @@
-from fastapi import APIRouter, HTTPException, status
+from typing import Optional, List
+from fastapi import APIRouter, HTTPException, status, Depends
 from backend.app.schemas.session import UserResponseSubmit
 from backend.app.services.session_service import session_service
 from backend.app.services.debate_service import debate_service
+from backend.app.core.auth import get_optional_user, AuthenticatedUser
 
 router = APIRouter(prefix="/sessions", tags=["Sessions"])
+
+@router.get("/my")
+async def get_my_sessions(user: Optional[AuthenticatedUser] = Depends(get_optional_user)):
+    """Fetches all past pitch sessions belonging to the current user."""
+    user_id = user.user_id if user else None
+    sessions = await session_service.list_user_sessions(user_id=user_id)
+    return {"sessions": sessions, "count": len(sessions)}
 
 @router.get("/{session_id}")
 async def get_session_state(session_id: str):
@@ -15,6 +24,7 @@ async def get_session_state(session_id: str):
             detail=f"Session '{session_id}' not found."
         )
     return session
+
 
 @router.post("/{session_id}/response")
 async def submit_response(session_id: str, payload: UserResponseSubmit):

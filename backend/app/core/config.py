@@ -28,9 +28,17 @@ class Settings(BaseSettings):
     LANGSMITH_API_KEY: str = ""
     LANGSMITH_PROJECT: str = "devils-advocate-panel"
 
-    # Database (MongoDB)
+    # Database (MongoDB Atlas)
     MONGODB_URI: str = "mongodb://localhost:27017"
+    MONGO_DB_URL: str = ""
     MONGODB_DB_NAME: str = "devils_advocate"
+
+    # Authentication (Clerk)
+    CLERK_PUBLISHABLE_KEY: str = ""
+    CLERK_SECRET_KEY: str = ""
+    CLERK_JWT_ISSUER: str = ""
+    APP_JWT_SECRET: str = ""
+    COOKIE_SECURE: bool = False
 
     # Vector Storage
     VECTOR_STORE_PATH: str = "./data/vectorstore"
@@ -42,7 +50,14 @@ class Settings(BaseSettings):
     )
 
     @property
+    def effective_mongodb_uri(self) -> str:
+        if self.MONGO_DB_URL and self.MONGO_DB_URL.strip():
+            return self.MONGO_DB_URL.strip()
+        return self.MONGODB_URI.strip()
+
+    @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
 
 settings = Settings()

@@ -17,7 +17,7 @@ from contextlib import asynccontextmanager
 import logging
 from backend.app.core.config import settings
 from backend.app.core.langsmith import setup_langsmith_tracing
-from backend.app.db.mongo import connect_to_mongo, close_mongo_connection
+from backend.app.db.mongo import connect_to_mongo, close_mongo_connection, get_db_status
 from backend.app.rag.service import rag_service
 from backend.app.api.pitches import router as pitches_router
 from backend.app.api.sessions import router as sessions_router
@@ -64,13 +64,15 @@ app.include_router(pdf_router, prefix="/api")
 
 @app.get("/health", tags=["Health"])
 async def health_check():
+    db_status = get_db_status()
     return {
         "status": "healthy",
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
         "port": settings.PORT,
-        "llm_provider": settings.DEFAULT_LLM_PROVIDER
+        "llm_provider": settings.DEFAULT_LLM_PROVIDER,
+        "database": db_status
     }
 
 @app.get("/", tags=["Root"])
