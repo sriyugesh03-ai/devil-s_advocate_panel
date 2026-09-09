@@ -1,25 +1,28 @@
 import { StartupPitch, SessionState, FinalVerdict } from '../types';
 
-function getApiBaseUrl(): string {
-  const prodDefault = 'https://devils-advocate-backend.onrender.com';
-  const devDefault = 'http://localhost:8999';
-  
-  let url = process.env.NEXT_PUBLIC_API_URL;
-  if (!url || url.trim() === '') {
-    url = process.env.NODE_ENV === 'production' ? prodDefault : devDefault;
+export function getApiBaseUrl(): string {
+  // 1. If running in the browser on a deployed production domain, always use the production backend
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname && !hostname.includes('localhost') && !hostname.includes('127.0.0.1')) {
+      return 'https://devils-advocate-backend.onrender.com';
+    }
   }
-  
+
+  // 2. Otherwise, check NEXT_PUBLIC_API_URL or environment
+  let url = process.env.NEXT_PUBLIC_API_URL;
+  if (!url || url.trim() === '' || (process.env.NODE_ENV === 'production' && url.includes('localhost'))) {
+    url = process.env.NODE_ENV === 'production'
+      ? 'https://devils-advocate-backend.onrender.com'
+      : 'http://localhost:8999';
+  }
+
   url = url.trim();
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     url = `https://${url}`;
   }
   return url.replace(/\/+$/, '');
 }
-
-const API_BASE_URL = getApiBaseUrl();
-
-
-
 
 function getAuthHeaders(token?: string | null): Record<string, string> {
   const headers: Record<string, string> = {
@@ -48,16 +51,18 @@ async function handleResponse<T>(res: Response, fallbackError: string): Promise<
 }
 
 export async function checkBackendHealth(): Promise<{ status: string; port: number; database?: any }> {
+  const baseUrl = getApiBaseUrl();
   try {
-    const res = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
+    const res = await fetch(`${baseUrl}/health`, { cache: 'no-store' });
     return await handleResponse(res, 'Backend health check failed');
   } catch (e: any) {
-    throw new Error(`Cannot reach backend on ${API_BASE_URL}: ${e.message}`);
+    throw new Error(`Cannot reach backend on ${baseUrl}: ${e.message}`);
   }
 }
 
 export async function submitPitch(pitch: StartupPitch, token?: string | null): Promise<SessionState> {
-  const res = await fetch(`${API_BASE_URL}/api/pitches`, {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/api/pitches`, {
     method: 'POST',
     headers: getAuthHeaders(token),
     body: JSON.stringify(pitch),
@@ -66,7 +71,8 @@ export async function submitPitch(pitch: StartupPitch, token?: string | null): P
 }
 
 export async function getSession(sessionId: string, token?: string | null): Promise<SessionState> {
-  const res = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`, {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/api/sessions/${sessionId}`, {
     cache: 'no-store',
     headers: getAuthHeaders(token),
   });
@@ -74,7 +80,8 @@ export async function getSession(sessionId: string, token?: string | null): Prom
 }
 
 export async function getMySessions(token?: string | null): Promise<{ sessions: SessionState[]; count: number }> {
-  const res = await fetch(`${API_BASE_URL}/api/sessions/my`, {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/api/sessions/my`, {
     cache: 'no-store',
     headers: getAuthHeaders(token),
   });
@@ -87,7 +94,8 @@ export async function submitFounderResponse(
   responseText: string,
   token?: string | null
 ): Promise<SessionState> {
-  const res = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/response`, {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/api/sessions/${sessionId}/response`, {
     method: 'POST',
     headers: getAuthHeaders(token),
     body: JSON.stringify({
@@ -100,7 +108,8 @@ export async function submitFounderResponse(
 }
 
 export async function getVerdict(sessionId: string, token?: string | null): Promise<FinalVerdict> {
-  const res = await fetch(`${API_BASE_URL}/api/verdict/${sessionId}`, {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/api/verdict/${sessionId}`, {
     cache: 'no-store',
     headers: getAuthHeaders(token),
   });
@@ -108,6 +117,8 @@ export async function getVerdict(sessionId: string, token?: string | null): Prom
 }
 
 export function getPdfDownloadUrl(sessionId: string): string {
-  return `${API_BASE_URL}/api/pdf/${sessionId}/download`;
+  const baseUrl = getApiBaseUrl();
+  return `${baseUrl}/api/pdf/${sessionId}/download`;
 }
+
 
