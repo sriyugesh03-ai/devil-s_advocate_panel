@@ -1,6 +1,6 @@
 import re
 import html
-from typing import str_type_var, Optional
+from typing import Optional
 
 # Injection guard patterns
 SUSPICIOUS_PROMPT_PATTERNS = [
@@ -30,6 +30,9 @@ def sanitize_user_input(text: str, max_length: int = 5000) -> str:
     return escaped
 
 def sanitize_filename(filename: str) -> str:
-    """Removes unsafe characters from filenames for secure attachment headers."""
-    clean = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", filename)
-    return clean[:100]
+    """Removes unsafe characters and directory traversal attempts from filenames."""
+    clean = filename.replace("..", "").replace("/", "_").replace("\\", "_")
+    clean = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", clean)
+    clean = re.sub(r"_+", "_", clean)
+    return clean.strip("_")[:100]
+

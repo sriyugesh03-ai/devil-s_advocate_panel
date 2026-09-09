@@ -13,4 +13,5 @@ def test_sanitize_filename():
     clean = sanitize_filename(unsafe)
     assert ".." not in clean
     assert "$" not in clean
-    assert clean == "report_.._.._evil__pitch__1.pdf" or not any(c in clean for c in [" ", "$", "/"])
+    assert "#" not in clean
+    assert "/" not in clean
