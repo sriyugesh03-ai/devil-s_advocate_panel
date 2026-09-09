@@ -27,18 +27,21 @@ from backend.app.api.pdf import router as pdf_router
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("devils_advocate")
 
+import asyncio
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info(f"Starting {settings.PROJECT_NAME} v{settings.VERSION} on port {settings.PORT}")
+    logger.info(f"Starting {settings.PROJECT_NAME} v{settings.VERSION}")
     setup_langsmith_tracing()
     await connect_to_mongo()
-    # Pre-index domain knowledge if not already indexed
+    # Pre-index domain knowledge in background to allow immediate port binding
     try:
-        await rag_service.initialize_and_index()
+        asyncio.create_task(rag_service.initialize_and_index())
     except Exception as e:
         logger.warning(f"Background RAG initialization warning: {e}")
     yield
     await close_mongo_connection()
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

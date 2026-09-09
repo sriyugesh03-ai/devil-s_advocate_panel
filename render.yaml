@@ -15,8 +15,6 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.8
-      - key: PORT
-        value: 8999
       - key: ENVIRONMENT
         value: production
       - key: DEFAULT_LLM_PROVIDER
