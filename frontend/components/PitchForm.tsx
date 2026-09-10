@@ -17,8 +17,10 @@ import {
   Github, 
   FileUp, 
   CheckCircle,
-  Zap
+  Zap,
+  Power
 } from 'lucide-react';
+import { getMcpEnabledState, MCP_STORAGE_KEY } from './McpModal';
 
 interface PitchFormBaseProps {
   getToken?: () => Promise<string | null>;
@@ -44,6 +46,34 @@ function PitchFormBase({ getToken }: PitchFormBaseProps) {
     fundraising_goal: '$2.5M Seed at $15M pre-money valuation',
     github_url: 'https://github.com/tiangolo/fastapi',
   });
+
+  const [mcpState, setMcpState] = useState<Record<string, boolean>>({
+    'tavily-search': true,
+    'github-diligence': true,
+    'deck-parser': true,
+  });
+
+  const syncMcpState = () => {
+    setMcpState(getMcpEnabledState());
+  };
+
+  React.useEffect(() => {
+    syncMcpState();
+    window.addEventListener('mcp-config-changed', syncMcpState);
+    return () => window.removeEventListener('mcp-config-changed', syncMcpState);
+  }, []);
+
+  const toggleMcpTool = (id: string) => {
+    const nextState = {
+      ...mcpState,
+      [id]: !mcpState[id]
+    };
+    setMcpState(nextState);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(MCP_STORAGE_KEY, JSON.stringify(nextState));
+      window.dispatchEvent(new Event('mcp-config-changed'));
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -87,6 +117,12 @@ function PitchFormBase({ getToken }: PitchFormBaseProps) {
     setLoading(true);
     setError(null);
 
+    // If GitHub Diligence MCP is toggled OFF, clear github_url so technical audit is skipped
+    const submissionPayload = {
+      ...formData,
+      github_url: mcpState['github-diligence'] ? formData.github_url : undefined
+    };
+
     try {
       let token: string | null = null;
       if (getToken) {
@@ -96,7 +132,7 @@ function PitchFormBase({ getToken }: PitchFormBaseProps) {
           // Continue unauthenticated if user is guest
         }
       }
-      const session = await submitPitch(formData, token);
+      const session = await submitPitch(submissionPayload, token);
       router.push(`/session/${session.session_id}`);
     } catch (err: any) {
       setError(err.message || 'Failed to submit pitch.');
@@ -295,28 +331,73 @@ function PitchFormBase({ getToken }: PitchFormBaseProps) {
         </div>
       </div>
 
-      {/* GitHub Repository (Technical Diligence MCP) */}
-      <div className="p-4 rounded-xl bg-darkbg-800/80 border border-cyan-500/20 space-y-2">
-        <label className="block text-xs font-semibold uppercase tracking-wider text-cyan-300 flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
+      {/* GitHub Repository (Technical Diligence MCP) with explicit ON/OFF Switch */}
+      <div className={`p-5 rounded-xl border transition-all space-y-3 ${
+        mcpState['github-diligence']
+          ? 'bg-darkbg-800/80 border-cyan-500/30'
+          : 'bg-darkbg-900/60 border-white/5 opacity-75'
+      }`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <label className="text-xs font-semibold uppercase tracking-wider text-cyan-300 flex items-center gap-2">
             <Github className="w-4 h-4 text-violet-400" />
-            GitHub Repository (Technical Diligence MCP)
-          </span>
-          <span className="text-[10px] text-cyan-400/80 font-normal">
-            Optional • Audits commits & architecture
-          </span>
-        </label>
-        <input
-          type="url"
-          name="github_url"
-          value={formData.github_url}
-          onChange={handleChange}
-          placeholder="https://github.com/your-org/your-repo"
-          className="w-full px-4 py-2.5 rounded-lg bg-darkbg-900 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm font-mono"
-        />
-        <p className="text-[11px] text-slate-400">
-          The <strong>Skeptical VC</strong> will audit commit velocity, language ratios, and open-source dependencies via the GitHub MCP tool.
-        </p>
+            <span>GitHub Repository (Technical Diligence MCP)</span>
+          </label>
+
+          {/* Quick ON / OFF Button */}
+          <div className="flex items-center gap-2.5">
+            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+              mcpState['github-diligence']
+                ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300'
+                : 'bg-slate-800 border-slate-700 text-slate-400'
+            }`}>
+              {mcpState['github-diligence'] ? 'ON' : 'OFF'}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => toggleMcpTool('github-diligence')}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                mcpState['github-diligence'] ? 'bg-emerald-600' : 'bg-slate-700'
+              }`}
+              role="switch"
+              aria-checked={mcpState['github-diligence']}
+              title="Toggle GitHub Diligence ON/OFF"
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  mcpState['github-diligence'] ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
+        {mcpState['github-diligence'] ? (
+          <>
+            <input
+              type="url"
+              name="github_url"
+              value={formData.github_url}
+              onChange={handleChange}
+              placeholder="https://github.com/your-org/your-repo"
+              className="w-full px-4 py-2.5 rounded-lg bg-darkbg-900 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm font-mono"
+            />
+            <p className="text-[11px] text-slate-400">
+              The <strong>Skeptical VC</strong> will audit commit velocity, language breakdown, and repo architecture via GitHub MCP.
+            </p>
+          </>
+        ) : (
+          <div className="p-3 rounded-lg bg-darkbg-950 border border-white/5 flex items-center justify-between text-xs text-slate-400">
+            <span>GitHub technical diligence is currently <strong>toggled OFF</strong>. Code audits will be skipped.</span>
+            <button
+              type="button"
+              onClick={() => toggleMcpTool('github-diligence')}
+              className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 underline ml-2"
+            >
+              Turn ON
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Submit Button */}

@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { checkBackendHealth } from "../lib/api";
 import { useAppAuth } from "./AuthProvider";
-import McpModal from "./McpModal";
+import McpModal, { getMcpEnabledState } from "./McpModal";
 
 function ClerkAuthButtons() {
   const { user, isLoaded } = useUser();
@@ -70,6 +70,18 @@ export default function Navbar() {
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mcpModalOpen, setMcpModalOpen] = useState(false);
+  const [mcpActiveCount, setMcpActiveCount] = useState<number>(3);
+
+  const updateCount = () => {
+    const states = getMcpEnabledState();
+    setMcpActiveCount(Object.values(states).filter(Boolean).length);
+  };
+
+  useEffect(() => {
+    updateCount();
+    window.addEventListener('mcp-config-changed', updateCount);
+    return () => window.removeEventListener('mcp-config-changed', updateCount);
+  }, []);
 
   useEffect(() => {
     checkBackendHealth()
@@ -135,13 +147,17 @@ export default function Navbar() {
           {/* MCP Connectors Trigger Button */}
           <button
             onClick={() => setMcpModalOpen(true)}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/60 transition-all shadow-sm shadow-cyan-950/30"
-            title="Inspect active Model Context Protocol (MCP) live tools"
+            className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/60 hover:border-cyan-400 transition-all shadow-sm shadow-cyan-950/30 group"
+            title="Configure MCP Connectors (ON / OFF switches)"
           >
-            <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse group-hover:scale-110 transition-transform" />
             <span>MCP Connectors</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-[10px] font-mono text-cyan-200">
-              3 Live
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+              mcpActiveCount > 0 
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
+                : "bg-slate-800 text-slate-400 border border-slate-700"
+            }`}>
+              {mcpActiveCount} ON
             </span>
           </button>
         </nav>
@@ -217,10 +233,19 @@ export default function Navbar() {
               setMobileMenuOpen(false);
               setMcpModalOpen(true);
             }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyan-300 hover:bg-cyan-950/40 border border-cyan-500/20"
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-cyan-300 hover:bg-cyan-950/40 border border-cyan-500/20"
           >
-            <Zap className="w-4 h-4 text-cyan-400" />
-            <span>MCP Connectors (3 Live)</span>
+            <div className="flex items-center gap-3">
+              <Zap className="w-4 h-4 text-cyan-400" />
+              <span>MCP Connectors</span>
+            </div>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+              mcpActiveCount > 0 
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
+                : "bg-slate-800 text-slate-400 border border-slate-700"
+            }`}>
+              {mcpActiveCount} ON
+            </span>
           </button>
 
           <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
