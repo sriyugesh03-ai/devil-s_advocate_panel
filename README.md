@@ -346,6 +346,21 @@ npm run build
 
 ---
 
+## 📚 Deep-Dive Technical Documentation
+
+For in-depth specifications, architectural diagrams, and flowcharts, explore the dedicated documentation guides:
+
+| Document | Description |
+| :--- | :--- |
+| **[Workflow Documentation](docs/workflow.md)** | End-to-end multi-agent execution sequence and phase breakdown |
+| **[System Architecture](docs/architecture.md)** | Multi-tier topology, edge proxy gateway, and cloud infrastructure |
+| **[RAG Engine Architecture](docs/rag.md)** | Knowledge base ingestion, ChromaDB vector store, and prompt grounding |
+| **[LangGraph State Machine](docs/langgraph.md)** | Cyclic graph design, `PanelState` schema, and human-in-the-loop interrupts |
+| **[LangChain & LLM Integration](docs/langchain.md)** | Prompt engineering, multi-provider adapters (Groq/Gemini), and structured outputs |
+| **[User Query Workflow](docs/user_query_workflow.md)** | Complete user journey from pitch intake to PDF memo export |
+
+---
+
 ## 📄 License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
