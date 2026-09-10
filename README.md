@@ -2,8 +2,8 @@
 
 > **Autonomous Multi-Agent AI Investment Committee that stress-tests startup pitches, uncovers fatal assumptions, and generates institutional-grade investment memos.**
 
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-000000.svg?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![LangGraph](https://img.shields.io/badge/Orchestration-LangGraph-FF6F00.svg)](https://langchain-ai.github.io/langgraph/)
 [![MongoDB Atlas](https://img.shields.io/badge/Database-MongoDB%20Atlas-47A248.svg?logo=mongodb&logoColor=white)](https://www.mongodb.com/atlas)
 [![Clerk](https://img.shields.io/badge/Auth-Clerk-6C47FF.svg?logo=clerk&logoColor=white)](https://clerk.com/)
@@ -11,46 +11,202 @@
 
 ---
 
-## 🌐 Live Deployments
+## 🌐 Live Web Application
 
-| Component | Deployment URL | Description |
-| :--- | :--- | :--- |
-| **Frontend Web App** | [https://devils-advocate-frontend.onrender.com](https://devils-advocate-frontend.onrender.com) | Interactive Next.js 14 Web Application |
-| **Backend API** | [https://devils-advocate-backend.onrender.com](https://devils-advocate-backend.onrender.com) | FastAPI REST API, LangGraph Agents & Docs |
-| **API Health Status** | [https://devils-advocate-backend.onrender.com/health](https://devils-advocate-backend.onrender.com/health) | Live Atlas DB & Vector Store Status Check |
-| **Interactive Docs** | [https://devils-advocate-backend.onrender.com/docs](https://devils-advocate-backend.onrender.com/docs) | Swagger UI API Documentation |
+Experience the live multi-agent investment gauntlet:
+
+👉 **[https://devils-advocate-frontend.onrender.com](https://devils-advocate-frontend.onrender.com)**
 
 ---
 
-## 📖 Overview
+## ❓ What it does ?
 
-**Devil's Advocate Panel** simulates a brutal, high-stakes venture capital partner meeting. Most founders practice pitching in echo chambers of polite encouragement. This platform subjects startup ideas to three specialized, adversarial AI agents who cross-examine every assumption, cite historical failure cases, stress-test financial projections, and produce an unvarnished investment verdict.
+**Devil's Advocate Panel** is an interactive, multi-agent AI crucible that puts startup pitches through the exact rigors of an elite Tier-1 venture capital partner meeting.
+
+1. **Intake Pitch Dossier & PDF Deck**: Founders enter startup details (problem, solution, market size, business model, traction, fundraising goal) or simply upload a `.pdf` pitch deck for automated slide extraction.
+2. **Summon 3 Adversarial AI Agents**: The pitch is cross-examined by three specialized agents with distinct personas:
+   - **Skeptical VC**: Challenges defensibility, moat durability, network effects, and team capability.
+   - **Financial Analyst**: Scrutinizes unit economics, burn multiple, customer acquisition cost (CAC), LTV, gross margins, and pricing power.
+   - **Market Realist**: Attacks TAM validity, regulatory traps, platform risks, and incumbent retaliation.
+3. **Progressive 3-Round Interrogation**: An adaptive state machine engages the founder in 3 rounds of challenges and counter-defenses, getting progressively harder based on founder responses.
+4. **Live External Diligence (MCP Connectors)**: Integrates live Model Context Protocol tools for web scraping (Tavily), technical codebase audits (GitHub), and slide parsing (PDF Parser), with interactive **ON / OFF switches**.
+5. **Weighted Scoring & Investment Verdict**: Computes a multi-criteria weighted score (0–10), classifies an investment decision (`STRONG_INVEST`, `LEAN_INVEST`, `MORE_DATA`, `PASS`, `HARD_PASS`), generates a prioritized Weakness Matrix, and outlines a strategic Pivot Roadmap.
+6. **Institutional PDF Investment Memo**: Generates an exportable, styled PDF investment memo containing full transcripts, radar evaluation scores, and executive summaries.
 
 ---
 
-## ⚡ Core Features
+## 💥 Problem Statement
 
-- **🎭 Tri-Agent Adversarial Panel**:
-  - **Skeptical VC**: Attacks competitive moats, network effects, distribution advantages, and commoditization risks.
-  - **Financial Analyst**: Dissects unit economics (CAC, LTV, payback period), burn rates, gross margins, and pricing models.
-  - **Market Realist**: Identifies regulatory traps, macro headwinds, realistic SOM vs. inflated TAM, and platform dependencies.
-- **📚 Domain-Specific RAG Grounding**:
-  - Real-time retrieval against curated startup failure case studies (Quibi, Theranos, Fast, WeWork, Segway) and B2B/B2C SaaS benchmark databases using ChromaDB vector search.
-  - Agent critiques cite real market precedent and empirical failure modes.
-- **🔄 3-Round Interactive Crucible**:
-  - Progressive 3-stage cross-examination powered by **LangGraph** state machine.
-  - Human-in-the-loop interruption mechanism (`interrupt_before=["await_user"]`).
-  - Adaptive difficulty: agents formulate follow-up questions by cross-examining founder defenses from previous rounds.
-- **⚖️ Weighted Scoring & Verdict Arbiter**:
-  - Multi-criteria weighted algorithmic evaluation: Market Viability (25%), Defensibility (25%), Unit Economics (25%), Execution & Agility (15%), Timing & Scalability (10%).
-  - Categorical verdict output: `STRONG_INVEST`, `LEAN_INVEST`, `MORE_DATA`, `PASS`, `HARD_PASS`.
-  - Actionable **Weakness Matrix** (ranked by `HIGH`, `MEDIUM`, `LOW` severity) and strategic **Pivot Roadmap**.
-- **📄 Instant PDF Investment Memo**:
-  - One-click generation of institutional-grade PDF memos via ReportLab.
-  - Contains complete dialogue audit transcripts, visual metric tables, and strategic recommendations.
-- **🔐 Clerk Authentication & Session Persistence**:
-  - Seamless authentication via Clerk (Google, GitHub, Email).
-  - MongoDB Atlas production database storing user pitch histories, debate sessions, and state checkpoints.
+Founders prepare for fundraising in dangerous **echo chambers**:
+- **Polite Feedback Bias**: Friends, family, and early mentors rarely provide brutal, unvarnished critiques of flawed unit economics or nonexistent moats.
+- **Surprise Rejections**: Founders discover their fatal business model flaws only *after* burning through tier-1 VC partner meetings and getting rejected without detailed feedback.
+- **Expensive Advisory**: Retaining veteran venture partners or professional startup coaches for pitch stress-testing costs thousands of dollars and weeks of scheduling.
+- **Unverified Assumptions**: Pitch decks frequently contain unverified market sizing, unvalidated competitor matrices, and hand-wavy technical timelines.
+
+---
+
+## 💡 Solution
+
+**Devil's Advocate Panel** removes polite bias by delivering a 24/7, high-fidelity AI investment gauntlet:
+- **Zero Echo Chamber**: 3 relentless AI personas pressure-test every vulnerability before real investors see them.
+- **Empirical RAG Grounding**: The panel grounds critiques in real-world startup failure post-mortems (Quibi, Fast, Theranos, WeWork) and benchmark SaaS datasets via vector search.
+- **Live Tool Diligence via MCP**: Cross-references claims against live competitor search (Tavily) and public GitHub codebase commits.
+- **Interactive Multi-Round Crucible**: Founders practice formulating real-time counter-arguments and defenses across 3 progressive rounds.
+- **Actionable Strategic Clarity**: Generates prioritized risk severity matrices (`HIGH`, `MEDIUM`, `LOW`) and concrete pivot roadmaps to de-risk the company prior to raising capital.
+
+---
+
+## 🚀 How to Run it
+
+### Prerequisites
+- **Node.js 18+** & `npm`
+- **Python 3.11+**
+- Free API Keys:
+  - **Groq API Key** (or Gemini API Key)
+  - **MongoDB Atlas** connection string
+  - **Clerk** account (optional for public browsing, required for user history)
+  - **Tavily API Key** (optional for live web search MCP)
+  - **GitHub Personal Access Token** (optional for technical diligence MCP)
+
+---
+
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com/sriyugesh03-ai/devil-s_advocate_panel.git
+cd devil-s_advocate_panel
+```
+
+---
+
+### Step 2: Backend Setup & Execution
+```bash
+# Navigate to backend directory
+cd backend
+
+# Create and activate Python virtual environment
+python -m venv venv
+# On Windows (PowerShell):
+.\venv\Scripts\activate
+# On macOS / Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Create your .env file
+cp ../.env.example .env
+```
+
+*Fill in your keys in `backend/.env` (see the Environment Variables section below).*
+
+```bash
+# Start the FastAPI Backend Server
+uvicorn app.main:app --host 0.0.0.0 --port 8999 --reload
+```
+*Backend runs locally at: `http://localhost:8999` (Swagger documentation at `http://localhost:8999/docs`)*
+
+---
+
+### Step 3: Frontend Setup & Execution
+```bash
+# Open a new terminal and navigate to frontend directory
+cd frontend
+
+# Install Node dependencies
+npm install
+
+# Create your local frontend environment file
+cp .env.example .env.local
+```
+
+*Configure `frontend/.env.local` with the frontend variables listed below.*
+
+```bash
+# Start the Next.js Development Server
+npm run dev
+```
+*Frontend runs locally at: `http://localhost:3000`*
+
+---
+
+## 🔑 What the ENV variables
+
+Create your `.env` file in the root / backend directory and `.env.local` in the frontend directory.
+
+### 1. Root & Backend Environment Variables (`backend/.env`)
+
+```env
+# ==========================================
+# 1. LLM Providers (Groq or Gemini)
+# ==========================================
+GROQ_API_KEY=gsk_your_groq_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+DEFAULT_LLM_PROVIDER=groq
+GROQ_MODEL=openai/gpt-oss-120b
+GEMINI_MODEL=gemini-2.5-flash
+
+# ==========================================
+# 2. Model Context Protocol (MCP) Connectors (100% Free Tier)
+# ==========================================
+TAVILY_API_KEY=tvly-your_tavily_api_key_here
+GITHUB_PERSONAL_ACCESS_TOKEN=github_pat_your_github_token_here
+
+# ==========================================
+# 3. Production MongoDB Atlas Database
+# ==========================================
+MONGO_DB_URL=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+MONGODB_DB_NAME=devils_advocate
+
+# ==========================================
+# 4. Clerk Authentication (Backend JWT Verification)
+# ==========================================
+CLERK_SECRET_KEY=sk_test_your_clerk_secret_key_here
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key_here
+CLERK_JWT_ISSUER=
+
+# ==========================================
+# 5. LangSmith Observability (Optional)
+# ==========================================
+LANGSMITH_TRACING=false
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+LANGSMITH_API_KEY=
+LANGSMITH_PROJECT=devils-advocate-panel
+
+# ==========================================
+# 6. Server & Network Configuration
+# ==========================================
+HOST=0.0.0.0
+PORT=8999
+ENVIRONMENT=production
+CORS_ORIGINS=http://localhost:3000, http://127.0.0.1:3000, https://devils-advocate-frontend.onrender.com
+```
+
+---
+
+### 2. Frontend Environment Variables (`frontend/.env.local`)
+
+```env
+# ==========================================
+# Frontend API URL & Deployments
+# ==========================================
+# Point to local backend for development, or leave empty for same-origin proxy in production
+NEXT_PUBLIC_API_URL=http://localhost:8999
+
+# Public Frontend URL (Deployed App)
+NEXT_PUBLIC_FRONTEND_URL=https://devils-advocate-frontend.onrender.com
+
+# ==========================================
+# Clerk Authentication Keys (Frontend)
+# ==========================================
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key_here
+CLERK_SECRET_KEY=sk_test_your_clerk_secret_key_here
+
+# Clerk Redirect Routes
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
+```
 
 ---
 
@@ -58,194 +214,119 @@
 
 ```mermaid
 flowchart TD
-    subgraph Browser ["User Browser"]
-        A[Next.js 14 Frontend UI]
+    subgraph Client ["Client Layer (Browser)"]
+        UI["Next.js 14 Web Application<br/>(Tailwind CSS + Framer Motion)"]
+        AuthModal["Clerk Authentication Modal"]
+        McpControls["MCP Hub (ON / OFF Switches)"]
     end
 
-    subgraph Vercel_Render ["Next.js Server Runtime (Render)"]
-        B["/api/proxy/[...path]<br/>(Same-Origin SSR Proxy)"]
+    subgraph Edge ["Next.js Edge & Server Runtime"]
+        Proxy["/api/proxy/[...path]<br/>(Same-Origin SSR API Gateway)"]
     end
 
-    subgraph Backend ["FastAPI Backend (Render)"]
-        C[FastAPI REST Router]
-        D[Clerk JWT Verifier]
-        E[ChromaDB RAG Engine]
+    subgraph BackendEngine ["FastAPI Backend Engine"]
+        Router["FastAPI REST Router"]
+        ClerkAuth["Clerk JWT Introspector"]
+        RAG["ChromaDB Vector Store<br/>(Failure Post-Mortems & SaaS Comps)"]
+        PDFGen["ReportLab PDF Memo Engine"]
         
-        subgraph Graph ["LangGraph Multi-Agent Engine"]
-            F[Round Orchestrator]
-            G1[Skeptical VC Agent]
-            G2[Financial Analyst Agent]
-            G3[Market Realist Agent]
-            H[Human-in-the-Loop Interrupt]
-            I[Verdict Arbiter & Scorer]
+        subgraph LangGraphWorkflow ["LangGraph 3-Round State Machine"]
+            Orchestrator["Round Orchestrator"]
+            VC["Skeptical VC Agent"]
+            FA["Financial Analyst Agent"]
+            MR["Market Realist Agent"]
+            HITL["Human-in-the-Loop Interrupt<br/>(await_user state)"]
+            Arbiter["Verdict Arbiter & Scorer"]
         end
         
-        J[ReportLab PDF Generator]
+        subgraph MCPHub ["Model Context Protocol (MCP) Tools"]
+            TavilyTool["Tavily Live Web Search"]
+            GitHubTool["GitHub Tech Audit Tool"]
+            DeckTool["PyPDF Pitch Deck Parser"]
+        end
     end
 
-    subgraph External ["Managed Cloud Services"]
-        K[(MongoDB Atlas Cluster0<br/>Sessions & Checkpoints)]
-        L[OpenAI API<br/>gpt-4o-mini & Embeddings]
-        M[Clerk Auth Cloud]
+    subgraph CloudData ["Managed Cloud Infrastructure"]
+        Atlas[("MongoDB Atlas Database<br/>(Sessions, Checkpoints & Transcripts)")]
+        LLMCloud["Groq / Gemini LLM API<br/>(120B / Flash Models)"]
+        ClerkCloud["Clerk Identity Provider"]
     end
 
-    A <-->|Client Requests| B
-    B <-->|Secure Internal HTTP| C
-    A -.->|Auth Session| M
-    C <-->|Token Validation| D
-    C <-->|Persist State & History| K
-    E <-->|Vector Retrieval & Embeddings| L
-    Graph <-->|Prompt Inferences| L
-    F --> G1 & G2 & G3
-    G1 & G2 & G3 --> H
-    H -->|Founder Defense| F
-    F -->|After Round 3| I
-    I --> J
-    J --> A
+    UI <-->|User Interactions| Proxy
+    UI -.->|Sign In / Out| AuthModal
+    AuthModal <--> ClerkCloud
+    McpControls -.->|Persist ON/OFF State| UI
+
+    Proxy <-->|Fast Internal HTTP| Router
+    Router <-->|Verify JWT| ClerkAuth
+    Router <-->|Checkpoints & Sessions| Atlas
+    Router <--> LangGraphWorkflow
+    
+    LangGraphWorkflow <-->|Vector Context| RAG
+    LangGraphWorkflow <-->|Inference Calls| LLMCloud
+    LangGraphWorkflow <-->|External Diligence| MCPHub
+    
+    TavilyTool -.->|Live Scraping| LLMCloud
+    GitHubTool -.->|API Audit| LLMCloud
+    
+    Orchestrator --> VC & FA & MR
+    VC & FA & MR --> HITL
+    HITL -->|Founder Defense| Orchestrator
+    Orchestrator -->|After Round 3| Arbiter
+    Arbiter --> PDFGen
+    PDFGen --> UI
 ```
 
 ---
 
-## 🛠️ Step-by-Step Project Implementation Journey
+## 🛠️ Step by Step Implementation Journey
 
-Here is the complete chronological record of how the Devil's Advocate Panel was built, optimized, and deployed:
+Here is the complete chronological journey of designing, constructing, hardening, and deploying the **Devil's Advocate Panel**:
 
-### Phase 1: Architectural Foundation & Domain Modeling
-- Designed the core data models using **Pydantic** ([schemas/pitch.py](backend/app/schemas/pitch.py), [schemas/session.py](backend/app/schemas/session.py)).
-- Formulated the multi-agent persona specifications and prompt templates.
-- Initialized FastAPI application structure with async modular routing.
+### Phase 1: Architectural Blueprint & Domain Modeling
+- Defined strongly-typed Pydantic schemas for startup pitch dossiers, round states, agent challenges, counter-defenses, and multi-criteria verdict scores.
+- Established system prompts and behavioral constraints for the three adversarial agents: **Skeptical VC**, **Financial Analyst**, and **Market Realist**.
+- Built modular FastAPI application structure with async routes, dependency injection, and health status indicators.
 
-### Phase 2: RAG Pipeline & Knowledge Ingestion
-- Built the domain knowledge repository in `backend/knowledge/` containing curated startup post-mortems, SaaS benchmarks, and unit economic comp sheets.
-- Implemented [rag_service.py](backend/app/services/rag_service.py) with ChromaDB and OpenAI `text-embedding-3-small` for semantic similarity search.
-- Integrated background task pre-indexing to ensure instantaneous vector queries during agent generation turns.
+### Phase 2: Domain-Specific RAG Knowledge Base
+- Curated post-mortem case studies of famous startup collapses (Quibi, Theranos, Fast, WeWork, Segway) and standard B2B/B2C SaaS benchmark tables in `backend/knowledge/`.
+- Built [rag_service.py](backend/app/services/rag_service.py) with ChromaDB and semantic similarity search to ground agent criticisms in empirical market facts.
+- Configured non-blocking background initialization so the server boots instantaneously.
 
 ### Phase 3: LangGraph State Machine & Multi-Agent Orchestration
-- Developed the 3-agent panel in [agents/](backend/app/agents/):
-  - [vc_agent.py](backend/app/agents/vc_agent.py): Deep defensibility analysis.
-  - [financial_agent.py](backend/app/agents/financial_agent.py): Unit economic scrutiny.
-  - [market_agent.py](backend/app/agents/market_agent.py): Market dynamics and regulatory hazards.
-- Constructed the cyclic LangGraph workflow in [agent_graph.py](backend/app/agents/agent_graph.py) with dynamic state transitions, 3-round counters, and human-in-the-loop interruption triggers (`await_user`).
-- Built the `MongoStateCheckpointer` to enable resumable sessions across asynchronous user turns.
+- Developed the 3 specialist agents with prompt chains that inject pitch parameters, competitor context, and founder defenses.
+- Engineered cyclic LangGraph workflow with dynamic state transitions, 3-round counters, and human-in-the-loop interruption triggers (`await_user`).
+- Implemented state checkpointing to allow asynchronous founder replies across multi-round debates.
 
-### Phase 4: Scoring Arbiter & PDF Memo Engine
-- Built [verdict_service.py](backend/app/services/verdict_service.py) with a composite scoring algorithm (0-10), categorical verdict classification, weakness severity ranking, and strategic pivot planning.
-- Implemented [pdf_service.py](backend/app/services/pdf_service.py) using **ReportLab** to generate styled, executive investment memos with tables, callout banners, and complete interrogation transcripts.
+### Phase 4: Scoring Arbiter & PDF Investment Memo Engine
+- Created [verdict_service.py](backend/app/services/verdict_service.py) with composite scoring across 5 weighted categories (Market Viability, Defensibility, Unit Economics, Execution Agility, Scalability).
+- Programmed categorical verdict assignment (`STRONG_INVEST`, `LEAN_INVEST`, `MORE_DATA`, `PASS`, `HARD_PASS`), prioritized risk severity rankings (`HIGH`, `MEDIUM`, `LOW`), and strategic pivot roadmaps.
+- Implemented institutional-grade PDF memo generator with custom typography, score breakdown tables, and dialogue audit logs using **ReportLab**.
 
 ### Phase 5: Modern Glassmorphic Frontend Development
-- Built responsive **Next.js 14 (App Router)** frontend with Tailwind CSS and Framer Motion.
-- Created pitch intake wizard ([PitchForm.tsx](frontend/components/PitchForm.tsx)) with real-time field validation and domain categorization.
-- Engineered dynamic multi-round debate interface ([session/[id]/page.tsx](frontend/app/session/[id]/page.tsx)) showing live typing indicators, individual agent feedback cards, and turn counters.
-- Built interactive Verdict & Memo visualizer ([session/[id]/verdict/page.tsx](frontend/app/session/[id]/verdict/page.tsx)) with animated radial score gauges, weakness matrices, and PDF download triggers.
+- Built responsive **Next.js 14 (App Router)** UI with dark mode, glowing accents, and Framer Motion micro-animations.
+- Designed pitch intake wizard ([PitchForm.tsx](frontend/components/PitchForm.tsx)) with real-time validation.
+- Built interactive multi-round debate view ([session/[id]/page.tsx](frontend/app/session/[id]/page.tsx)) featuring live typing indicators, individual agent challenge cards, and turn counters.
+- Built comprehensive Verdict & Memo dashboard ([session/[id]/verdict/page.tsx](frontend/app/session/[id]/verdict/page.tsx)) with animated radial gauges, risk matrices, and one-click PDF downloads.
 
 ### Phase 6: Clerk Authentication & Production MongoDB Atlas
-- Integrated **Clerk Authentication** across frontend ([layout.tsx](frontend/app/layout.tsx), [Navbar.tsx](frontend/components/Navbar.tsx), [middleware.ts](frontend/middleware.ts)) and backend ([auth.py](backend/app/core/auth.py)).
-- Created User Pitch History dashboard ([history/page.tsx](frontend/app/history/page.tsx)) allowing users to browse past pitches and download saved memos.
-- Connected **MongoDB Atlas Cluster0** with connection pooling (`maxPoolSize=50`), health verification endpoints, and automated indexing.
+- Integrated **Clerk Authentication** across frontend components and backend JWT validation middleware.
+- Built User Pitch History page ([history/page.tsx](frontend/app/history/page.tsx)) allowing founders to review past panel interrogations and download generated memos.
+- Connected **MongoDB Atlas Cluster0** with connection pooling (`maxPoolSize=50`), automatic retry logic, and collection indexes.
 
-### Phase 7: Production Optimization, Deployment & Live Verification
-- **512MB RAM Optimization**: Streamlined Next.js with `output: "standalone"`, optimized Docker build contexts, and made backend RAG initialization non-blocking.
-- **Port Dynamic Binding**: Configured `"start": "next start"` to bind seamlessly to Render's dynamic `$PORT` environment variable.
-- **Same-Origin Proxy Solution**: Built `/api/proxy/[...path]` in Next.js to eliminate CORS preflight latency and prevent browser adblockers (`ERR_BLOCKED_BY_CLIENT`) from interfering with backend requests.
-- **Live Verification**: Validated end-to-end user flow on Render production services, confirmed green 🟢 **API Online** status indicator, and verified all 17 unit/integration test suites.
+### Phase 7: Model Context Protocol (MCP) Integration & ON / OFF Switches
+- Created MCP tool suite:
+  - `TavilySearchTool`: Scrapes live competitor intelligence and pricing data for the Market Realist.
+  - `GitHubDiligenceTool`: Audits public repositories for commit velocity, language ratios, and architecture for the Skeptical VC.
+  - `PitchDeckParserTool`: Ingests and parses `.pdf` pitch decks into structured form inputs.
+- Built the **MCP Control Center Modal** ([McpModal.tsx](frontend/components/McpModal.tsx)) with dynamic status checks and quick **"All ON" / "All OFF"** buttons.
+- Added interactive **ON / OFF switches** on the pitch form and live status badges in the top navigation bar, enabling founders to toggle external tool connections at will.
 
-### Phase 8: Model Context Protocol (MCP) Live Diligence Integration
-- **Live Web & Competitor Search (Tavily MCP)**: Integrated into the Market Realist agent to automatically discover stealth competitors, check pricing pages, and verify funding events.
-- **Technical Codebase Diligence (GitHub MCP)**: Integrated into the Skeptical VC agent to audit repository commit velocity, language ratios, and open-source dependencies.
-- **Pitch Deck Ingestion (PDF Parser MCP)**: Added automated slide extraction and LLM parsing to auto-populate the pitch form from `.pdf` pitch decks.
-- **Navigation Bar MCP Hub**: Built interactive **"🔌 MCP Connectors"** indicator in the navbar opening a glassmorphic modal with real-time health, quota, and tool capability statuses.
-
----
-
-## 🧰 Tech Stack Matrix
-
-| Area | Technologies Used |
-| :--- | :--- |
-| **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS, Framer Motion, Lucide Icons |
-| **Backend** | Python 3.11+, FastAPI, Uvicorn, Pydantic v2, HTTPX |
-| **Multi-Agent Orchestration** | LangGraph, LangChain, OpenAI GPT-4o-mini |
-| **Vector Search / RAG** | ChromaDB, OpenAI `text-embedding-3-small` |
-| **Database** | MongoDB Atlas, Motor (Async Python Driver) |
-| **Authentication** | Clerk Auth (`@clerk/nextjs` + FastAPI JWT Introspection) |
-| **Document Generation** | ReportLab (PDF Generation Engine) |
-| **Hosting & CI/CD** | Render (Web Services), GitHub Actions / Git Version Control |
-
----
-
-## 🚀 Getting Started (Local Development)
-
-### Prerequisites
-- **Python 3.11+**
-- **Node.js 18+** & `npm`
-- **MongoDB Atlas** account (or local MongoDB 6+)
-- **OpenAI API Key**
-- **Clerk API Keys** (Optional for local public browsing)
-
----
-
-### 1. Backend Setup
-
-```bash
-# Navigate to backend directory
-cd backend
-
-# Create and activate virtual environment
-python -m venv venv
-# On Windows:
-.\venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create environment configuration file
-cp .env.example .env
-```
-
-Configure your `.env` in `backend/`:
-```env
-OPENAI_API_KEY=your_openai_api_key_here
-MONGODB_URL=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
-DATABASE_NAME=devils_advocate
-CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000","https://devils-advocate-frontend.onrender.com"]
-CLERK_SECRET_KEY=your_clerk_secret_key_here
-CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
-```
-
-Start the FastAPI development server:
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8999 --reload
-```
-API will be available at `http://localhost:8999` (Swagger UI at `http://localhost:8999/docs`).
-
----
-
-### 2. Frontend Setup
-
-```bash
-# Navigate to frontend directory
-cd ../frontend
-
-# Install dependencies
-npm install
-
-# Create environment configuration file
-cp .env.example .env.local
-```
-
-Configure your `.env.local` in `frontend/`:
-```env
-NEXT_PUBLIC_BACKEND_URL=http://localhost:8999
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
-CLERK_SECRET_KEY=your_clerk_secret_key_here
-```
-
-Start the Next.js development server:
-```bash
-npm run dev
-```
-Frontend will be available at `http://localhost:3000`.
+### Phase 8: Production Deployment, Hardening & Verification
+- **512MB RAM Optimization**: Streamlined Next.js with standalone output and optimized Docker build contexts.
+- **Same-Origin SSR Proxy**: Implemented `/api/proxy/[...path]` in Next.js to eliminate CORS preflight latency and prevent client-side request blocks.
+- **Automated Testing Suite**: Built and verified 20 unit and integration tests across agents, graph workflows, MCP tools, PDF rendering, and security sanitization (`pytest backend/tests -v`).
+- **Production Verification**: Deployed and validated end-to-end user workflows on Render production cloud with live green status indicators.
 
 ---
 
@@ -253,36 +334,15 @@ Frontend will be available at `http://localhost:3000`.
 
 Run backend test suites:
 ```bash
-cd backend
+# In backend directory with virtualenv active:
 pytest tests/ -v
-```
-
-Verify MongoDB Atlas connectivity:
-```bash
-python scripts/verify_mongo_atlas.py
 ```
 
 Run frontend production build verification:
 ```bash
-cd frontend
+# In frontend directory:
 npm run build
 ```
-
----
-
-## 📡 API Reference
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/health` | System health check (MongoDB Atlas & RAG status) |
-| `GET` | `/api/mcp/status` | Live status, quotas, and capabilities of connected MCP tools |
-| `POST` | `/api/pitches/` | Submit new startup pitch dossier and initialize session |
-| `POST` | `/api/pitches/parse-deck` | Ingest and parse `.pdf` pitch deck into structured form fields |
-| `GET` | `/api/pitches/history` | Retrieve pitch history for authenticated user |
-| `GET` | `/api/sessions/{session_id}` | Get session details, dialogue history, and current round state |
-| `POST` | `/api/sessions/{session_id}/respond` | Submit founder defense for the current interrogation round |
-| `GET` | `/api/sessions/{session_id}/verdict` | Fetch final investment verdict, metric scores, and weakness matrix |
-| `GET` | `/api/sessions/{session_id}/pdf` | Stream generated institutional PDF investment memo |
 
 ---
 
