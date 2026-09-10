@@ -42,13 +42,23 @@ async def vc_agent_node(state: PanelState) -> Dict[str, Any]:
     rag_ctx = state.get("retrieved_contexts", {}).get("vc", "")
     history = state.get("rounds_history", [])
 
-    challenge = await vc_agent.generate_challenge(
-        pitch=pitch,
-        round_number=round_num,
-        rag_context=rag_ctx,
-        conversation_history=history,
-    )
-    return {"current_challenges": [challenge.model_dump()]}
+    try:
+        challenge = await vc_agent.generate_challenge(
+            pitch=pitch,
+            round_number=round_num,
+            rag_context=rag_ctx,
+            conversation_history=history,
+        )
+        return {"current_challenges": [challenge.model_dump()]}
+    except Exception as e:
+        logger.warning(f"VC agent fallback in graph node: {e}")
+        return {"current_challenges": [{
+            "persona": "Skeptical VC",
+            "reasoning_summary": "Your defensibility and long-term moat against market incumbents require structural proof.",
+            "question": f"What prevents well-capitalized competitors from cloning {pitch.get('title', 'your product')} within 60 days?",
+            "severity": "Critical",
+            "evidence_citation": "Hamilton Helmer 7 Powers: Counter-Positioning"
+        }]}
 
 async def financial_agent_node(state: PanelState) -> Dict[str, Any]:
     """Generates challenge from the Financial Analyst."""
@@ -57,13 +67,23 @@ async def financial_agent_node(state: PanelState) -> Dict[str, Any]:
     rag_ctx = state.get("retrieved_contexts", {}).get("financial", "")
     history = state.get("rounds_history", [])
 
-    challenge = await financial_agent.generate_challenge(
-        pitch=pitch,
-        round_number=round_num,
-        rag_context=rag_ctx,
-        conversation_history=history,
-    )
-    return {"current_challenges": [challenge.model_dump()]}
+    try:
+        challenge = await financial_agent.generate_challenge(
+            pitch=pitch,
+            round_number=round_num,
+            rag_context=rag_ctx,
+            conversation_history=history,
+        )
+        return {"current_challenges": [challenge.model_dump()]}
+    except Exception as e:
+        logger.warning(f"Financial agent fallback in graph node: {e}")
+        return {"current_challenges": [{
+            "persona": "Financial Analyst",
+            "reasoning_summary": f"Your unit economics and pricing under {pitch.get('business_model', 'the pitch')} assume high conversion margins.",
+            "question": f"How do your CAC payback period and gross margins hold up if customer acquisition costs double under scale?",
+            "severity": "High",
+            "evidence_citation": "B2B SaaS Benchmark: 12-Month Payback Standard"
+        }]}
 
 async def market_agent_node(state: PanelState) -> Dict[str, Any]:
     """Generates challenge from the Market Realist."""
@@ -72,13 +92,23 @@ async def market_agent_node(state: PanelState) -> Dict[str, Any]:
     rag_ctx = state.get("retrieved_contexts", {}).get("market", "")
     history = state.get("rounds_history", [])
 
-    challenge = await market_agent.generate_challenge(
-        pitch=pitch,
-        round_number=round_num,
-        rag_context=rag_ctx,
-        conversation_history=history,
-    )
-    return {"current_challenges": [challenge.model_dump()]}
+    try:
+        challenge = await market_agent.generate_challenge(
+            pitch=pitch,
+            round_number=round_num,
+            rag_context=rag_ctx,
+            conversation_history=history,
+        )
+        return {"current_challenges": [challenge.model_dump()]}
+    except Exception as e:
+        logger.warning(f"Market agent fallback in graph node: {e}")
+        return {"current_challenges": [{
+            "persona": "Market Realist",
+            "reasoning_summary": f"Market adoption inertia in {pitch.get('target_market', 'this segment')} often creates long enterprise sales cycles.",
+            "question": f"What is the single biggest operational friction preventing enterprise buyers from deploying {pitch.get('title', 'your solution')} immediately?",
+            "severity": "High",
+            "evidence_citation": "Crossing the Chasm: Mainstream Pragmatist Friction"
+        }]}
 
 async def merge_challenges_node(state: PanelState) -> Dict[str, Any]:
     """Consolidates challenges from all specialist agents and pauses for human response."""

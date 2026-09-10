@@ -15,12 +15,12 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     # LLM Settings
-    DEFAULT_LLM_PROVIDER: str = "gemini"  # "gemini" or "groq"
+    DEFAULT_LLM_PROVIDER: str = "groq"  # "groq" (fast 120b) or "gemini"
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
     
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "openai/gpt-oss 120b"
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
 
     # LangSmith Tracing
     LANGSMITH_TRACING: bool = True

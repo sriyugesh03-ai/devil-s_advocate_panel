@@ -15,17 +15,20 @@ class GroqAdapter(BaseLLMAdapter):
     """Groq API Adapter supporting high-speed inference with model fallbacks and retries."""
 
     CANDIDATE_MODELS = [
-        "llama-3.3-70b-versatile",
-        "llama-3.1-70b-versatile",
-        "llama-3.1-8b-instant",
-        "mixtral-8x7b-32768",
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.8-27b",
+        "groq/compound",
     ]
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = (api_key or settings.GROQ_API_KEY).strip()
-        requested_model = (model or settings.GROQ_MODEL or "llama-3.3-70b-versatile").strip()
-        if requested_model == "openai/gpt-oss 120b":
-            self.model = "llama-3.3-70b-versatile"
+        requested_model = (model or settings.GROQ_MODEL or "openai/gpt-oss-120b").strip()
+        # Clean up any potential whitespace/dash discrepancies
+        if "120b" in requested_model:
+            self.model = "openai/gpt-oss-120b"
+        elif "20b" in requested_model:
+            self.model = "openai/gpt-oss-20b"
         else:
             self.model = requested_model
         self.base_url = "https://api.groq.com/openai/v1/chat/completions"
@@ -60,13 +63,13 @@ class GroqAdapter(BaseLLMAdapter):
                 "max_tokens": max_tokens,
             }
 
-            for attempt in range(2):
+            for attempt in range(3):
                 try:
-                    async with httpx.AsyncClient(timeout=35.0) as client:
+                    async with httpx.AsyncClient(timeout=45.0) as client:
                         response = await client.post(self.base_url, headers=headers, json=payload)
                         if response.status_code == 429:
                             logger.warning(f"Groq {model_name} rate limit (429) on attempt {attempt+1}. Backing off...")
-                            await asyncio.sleep(1.0 * (attempt + 1))
+                            await asyncio.sleep(1.5 * (attempt + 1))
                             continue
 
                         response.raise_for_status()
@@ -76,8 +79,8 @@ class GroqAdapter(BaseLLMAdapter):
                 except Exception as e:
                     last_error = e
                     logger.warning(f"Groq call with {model_name} encountered: {e}")
-                    if attempt == 0 and "429" in str(e):
-                        await asyncio.sleep(1.0)
+                    if attempt < 2 and "429" in str(e):
+                        await asyncio.sleep(1.5 * (attempt + 1))
 
         raise last_error or ValueError("All Groq candidate models failed.")
 
