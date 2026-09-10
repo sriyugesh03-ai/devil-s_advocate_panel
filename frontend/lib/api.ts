@@ -1,17 +1,14 @@
 import { StartupPitch, SessionState, FinalVerdict } from '../types';
 
 export function getApiBaseUrl(): string {
-  // 1. If running in the browser on a deployed production domain, always use the production backend
+  // In the browser, use the same-origin Next.js proxy to bypass adblockers & CORS
   if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (hostname && !hostname.includes('localhost') && !hostname.includes('127.0.0.1')) {
-      return 'https://devils-advocate-backend.onrender.com';
-    }
+    return '/api/proxy';
   }
 
-  // 2. Otherwise, check NEXT_PUBLIC_API_URL or environment
-  let url = process.env.NEXT_PUBLIC_API_URL;
-  if (!url || url.trim() === '' || (process.env.NODE_ENV === 'production' && url.includes('localhost'))) {
+  // On the server (SSR), call the backend URL directly
+  let url = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_INTERNAL_URL;
+  if (!url || url.trim() === '') {
     url = process.env.NODE_ENV === 'production'
       ? 'https://devils-advocate-backend.onrender.com'
       : 'http://localhost:8999';
@@ -56,6 +53,13 @@ export async function checkBackendHealth(): Promise<{ status: string; port: numb
     const res = await fetch(`${baseUrl}/health`, { cache: 'no-store' });
     return await handleResponse(res, 'Backend health check failed');
   } catch (e: any) {
+    // Fallback direct attempt if proxy is unavailable
+    if (baseUrl === '/api/proxy') {
+      try {
+        const directRes = await fetch('https://devils-advocate-backend.onrender.com/health', { cache: 'no-store' });
+        return await handleResponse(directRes, 'Backend health check failed');
+      } catch {}
+    }
     throw new Error(`Cannot reach backend on ${baseUrl}: ${e.message}`);
   }
 }
@@ -120,5 +124,6 @@ export function getPdfDownloadUrl(sessionId: string): string {
   const baseUrl = getApiBaseUrl();
   return `${baseUrl}/api/pdf/${sessionId}/download`;
 }
+
 
 
