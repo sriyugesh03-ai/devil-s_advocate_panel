@@ -1,11 +1,12 @@
 import asyncio
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from backend.app.schemas.session import SessionStatus
 from backend.app.services.session_service import session_service
 from backend.app.agents.vc_agent import SkepticalVCAgent
 from backend.app.agents.financial_agent import FinancialAnalystAgent
 from backend.app.agents.market_agent import MarketRealistAgent
+from backend.app.services.verdict_service import verdict_service
 from backend.app.rag.service import rag_service
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,37 @@ class DebateEngineService:
         self.financial = FinancialAnalystAgent()
         self.market = MarketRealistAgent()
 
+    def _get_fallback_challenge(self, persona: str, pitch: Dict[str, Any], round_number: int) -> Dict[str, Any]:
+        """Generates contextual fallback challenges if LLM call fails or times out."""
+        title = pitch.get("title", "this venture")
+        target = pitch.get("target_market", "target market")
+        model = pitch.get("business_model", "business model")
+        
+        if "VC" in persona:
+            return {
+                "persona": "Skeptical VC",
+                "reasoning_summary": f"Your defensibility and moat in {target} require concrete proof against copycats.",
+                "question": f"In Round {round_number}, what prevents well-capitalized incumbents or fast-followers from duplicating {title}'s core feature set within 60 days?",
+                "severity": "Critical",
+                "evidence_citation": "Hamilton Helmer 7 Powers: Scale Economies & Counter-Positioning"
+            }
+        elif "Financial" in persona:
+            return {
+                "persona": "Financial Analyst",
+                "reasoning_summary": f"Your unit economic assumptions under {model} may not sustain high customer acquisition friction.",
+                "question": f"Under stress in Round {round_number}, how does your CAC payback and gross margin hold up if paid acquisition costs double?",
+                "severity": "High",
+                "evidence_citation": "B2B SaaS Benchmark: 12-month CAC Payback Rule"
+            }
+        else:
+            return {
+                "persona": "Market Realist",
+                "reasoning_summary": f"Market adoption inertia in {target} is significantly slower than early traction suggests.",
+                "question": f"What is the single biggest operational or regulatory friction preventing enterprise buyers from deploying {title} today?",
+                "severity": "High",
+                "evidence_citation": "Crossing the Chasm: Mainstream Pragmatist Friction"
+            }
+
     async def submit_and_advance_round(
         self,
         session_id: str,
@@ -28,7 +60,7 @@ class DebateEngineService:
         if not session:
             raise ValueError(f"Session '{session_id}' not found.")
 
-        if session.get("status") == SessionStatus.COMPLETED.value:
+        if session.get("status") == SessionStatus.COMPLETED.value and session.get("verdict"):
             return session
 
         pitch = session.get("pitch", {})
@@ -48,14 +80,19 @@ class DebateEngineService:
                 reaction_tasks.append(self.market.generate_reaction(pitch, round_number, q, founder_response))
 
         raw_reactions = await asyncio.gather(*reaction_tasks, return_exceptions=True)
-        valid_reactions = [
-            r.model_dump() if hasattr(r, "model_dump") else {
-                "persona": "Panelist",
-                "reaction_summary": "Response noted with skepticism.",
-                "satisfaction_score": 50
-            }
-            for r in raw_reactions
-        ]
+        
+        valid_reactions = []
+        for i, r in enumerate(raw_reactions):
+            if hasattr(r, "model_dump"):
+                valid_reactions.append(r.model_dump())
+            else:
+                persona_name = current_challenges[i].get("persona", "Panelist") if i < len(current_challenges) else "Panelist"
+                valid_reactions.append({
+                    "persona": persona_name,
+                    "reaction_summary": f"Response noted. The panel remains cautious about execution risks in Round {round_number}.",
+                    "satisfaction_score": 55,
+                    "lingering_concern": "Execution and defensibility"
+                })
 
         # 2. Archive this round in rounds_history
         completed_round_record = {
@@ -86,7 +123,11 @@ class DebateEngineService:
             await session_service.update_session(session_id, session)
 
             # Retrieve refreshed domain context
-            rag_contexts = await rag_service.get_contexts_for_pitch(pitch)
+            rag_contexts = {}
+            try:
+                rag_contexts = await rag_service.get_contexts_for_pitch(pitch)
+            except Exception as re:
+                logger.warning(f"RAG retrieval warning for session {session_id}: {re}")
             session["retrieved_contexts"] = rag_contexts
 
             # Generate next round challenges in parallel with history context
@@ -96,19 +137,33 @@ class DebateEngineService:
                 self.market.generate_challenge(pitch, next_round, rag_contexts.get("market", ""), rounds_history),
             ]
             raw_next_challenges = await asyncio.gather(*next_challenge_tasks, return_exceptions=True)
-            valid_next_challenges = [
-                c.model_dump() for c in raw_next_challenges if hasattr(c, "model_dump")
-            ]
+            
+            personas = ["Skeptical VC", "Financial Analyst", "Market Realist"]
+            valid_next_challenges = []
+            for i, c in enumerate(raw_next_challenges):
+                if hasattr(c, "model_dump"):
+                    valid_next_challenges.append(c.model_dump())
+                else:
+                    logger.warning(f"Agent challenge generation fallback triggered for {personas[i]}: {c}")
+                    valid_next_challenges.append(self._get_fallback_challenge(personas[i], pitch, next_round))
 
             session["current_challenges"] = valid_next_challenges
             session["status"] = SessionStatus.AWAITING_USER.value
             await session_service.update_session(session_id, session)
             return session
         else:
-            # All 3 rounds complete!
+            # All 3 rounds complete -> auto-generate final verdict and mark completed
             session["current_challenges"] = []
-            session["status"] = SessionStatus.EVALUATING_ROUND.value
+            session["status"] = SessionStatus.COMPLETED.value
             await session_service.update_session(session_id, session)
+            
+            try:
+                verdict = await verdict_service.generate_verdict_for_session(session_id)
+                session["verdict"] = verdict.model_dump()
+            except Exception as ve:
+                logger.error(f"Error auto-generating verdict for session {session_id}: {ve}")
+                
             return session
 
 debate_service = DebateEngineService()
+

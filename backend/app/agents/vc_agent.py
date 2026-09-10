@@ -21,7 +21,7 @@ class SkepticalVCAgent(BaseSpecialistAgent):
         rag_context: str,
         conversation_history: List[Dict[str, Any]],
     ) -> AgentChallenge:
-        history_str = json.dumps(conversation_history, indent=2) if conversation_history else "Round 1 (Initial Pitch)"
+        history_str = json.dumps(conversation_history, indent=2, default=str) if conversation_history else "Round 1 (Initial Pitch)"
         
         user_prompt = (
             f"=== STARTUP PITCH ===\n"

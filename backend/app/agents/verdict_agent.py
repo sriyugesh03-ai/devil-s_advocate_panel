@@ -38,8 +38,8 @@ class VerdictAgent:
         rounds_history: List[Dict[str, Any]],
         user_responses: List[Dict[str, Any]],
     ) -> FinalVerdict:
-        pitch_summary = json.dumps(pitch, indent=2)
-        history_summary = json.dumps(rounds_history, indent=2)
+        pitch_summary = json.dumps(pitch, indent=2, default=str)
+        history_summary = json.dumps(rounds_history, indent=2, default=str)
 
         prompt = (
             f"=== ORIGINAL PITCH ===\n{pitch_summary}\n\n"
