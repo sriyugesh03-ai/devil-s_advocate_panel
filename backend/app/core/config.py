@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "openai/gpt-oss-120b"
 
+    # MCP (Model Context Protocol) Settings
+    TAVILY_API_KEY: str = ""
+    GITHUB_PERSONAL_ACCESS_TOKEN: str = ""
+
     # LangSmith Tracing
     LANGSMITH_TRACING: bool = True
     LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"

@@ -4,8 +4,10 @@ from backend.app.agents.base_agent import BaseSpecialistAgent
 from backend.app.schemas.agent import AgentChallenge, AgentReaction, AgentPersona, SeverityLevel
 from backend.app.llm.base import BaseLLMAdapter
 
+from backend.app.mcp.service import mcp_service
+
 class MarketRealistAgent(BaseSpecialistAgent):
-    """Market Realist persona agent."""
+    """Market Realist persona agent with MCP Live Web Intelligence."""
 
     def __init__(self, llm_service: Optional[BaseLLMAdapter] = None):
         super().__init__(
@@ -23,6 +25,17 @@ class MarketRealistAgent(BaseSpecialistAgent):
     ) -> AgentChallenge:
         history_str = json.dumps(conversation_history, indent=2, default=str) if conversation_history else "Round 1 (Initial Pitch)"
         
+        # Ingest Live MCP Competitor Intelligence
+        mcp_live_intel = ""
+        try:
+            mcp_live_intel = await mcp_service.search_market_intel(
+                pitch.get("title", ""),
+                pitch.get("target_market", ""),
+                pitch.get("competition", "")
+            )
+        except Exception:
+            pass
+
         user_prompt = (
             f"=== STARTUP PITCH ===\n"
             f"Title: {pitch.get('title')}\n"
@@ -33,9 +46,11 @@ class MarketRealistAgent(BaseSpecialistAgent):
             f"Round: {round_number} of 3\n\n"
             f"=== CONVERSATION HISTORY ===\n"
             f"{history_str}\n\n"
-            f"=== MARKET DYNAMICS & RAG CONTEXT ===\n"
+            f"=== DOMAIN BENCHMARKS & RAG CONTEXT ===\n"
             f"{rag_context}\n\n"
-            f"Expose incumbent bundling risks, buyer inertia, distribution bottlenecks, and market timing flaws."
+            f"=== MCP LIVE WEB & COMPETITOR INTEL ===\n"
+            f"{mcp_live_intel or 'No live web intel available.'}\n\n"
+            f"Expose incumbent bundling risks, buyer inertia, distribution bottlenecks, real-world competing alternatives, and market timing flaws."
         )
 
         return await self.llm_service.generate_structured(

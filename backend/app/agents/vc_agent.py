@@ -4,8 +4,10 @@ from backend.app.agents.base_agent import BaseSpecialistAgent
 from backend.app.schemas.agent import AgentChallenge, AgentReaction, AgentPersona, SeverityLevel
 from backend.app.llm.base import BaseLLMAdapter
 
+from backend.app.mcp.service import mcp_service
+
 class SkepticalVCAgent(BaseSpecialistAgent):
-    """Skeptical Venture Capitalist persona agent."""
+    """Skeptical Venture Capitalist persona agent with GitHub Technical Diligence MCP."""
 
     def __init__(self, llm_service: Optional[BaseLLMAdapter] = None):
         super().__init__(
@@ -23,6 +25,15 @@ class SkepticalVCAgent(BaseSpecialistAgent):
     ) -> AgentChallenge:
         history_str = json.dumps(conversation_history, indent=2, default=str) if conversation_history else "Round 1 (Initial Pitch)"
         
+        # Ingest GitHub Technical Diligence if repository URL provided
+        mcp_github_diligence = ""
+        github_url = pitch.get("github_url", "")
+        if github_url and "github.com" in github_url:
+            try:
+                mcp_github_diligence = await mcp_service.audit_github_repository(github_url)
+            except Exception:
+                pass
+
         user_prompt = (
             f"=== STARTUP PITCH ===\n"
             f"Title: {pitch.get('title')}\n"
@@ -38,7 +49,9 @@ class SkepticalVCAgent(BaseSpecialistAgent):
             f"{history_str}\n\n"
             f"=== DOMAIN BENCHMARKS & RAG CONTEXT ===\n"
             f"{rag_context}\n\n"
-            f"Attack the moat, defensibility, scalability, and long-term exit viability."
+            f"=== MCP GITHUB CODEBASE DILIGENCE ===\n"
+            f"{mcp_github_diligence or 'No GitHub repository submitted.'}\n\n"
+            f"Attack the moat, defensibility, codebase authenticity, scalability, and long-term exit viability."
         )
 
         return await self.llm_service.generate_structured(

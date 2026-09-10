@@ -11,6 +11,8 @@ class StartupPitchCreate(BaseModel):
     traction: Optional[str] = Field(default="Pre-revenue / Early stage", max_length=1000, description="Current revenue, users, waitlist, or growth metrics")
     competition: Optional[str] = Field(default="", max_length=1500, description="Existing incumbents and alternatives")
     fundraising_goal: Optional[str] = Field(default="", max_length=200, description="Amount seeking to raise and target valuation")
+    github_url: Optional[str] = Field(default="", max_length=300, description="Optional GitHub repository link for technical diligence")
+    pitch_deck_filename: Optional[str] = Field(default="", max_length=200, description="Optional uploaded pitch deck filename")
 
     @field_validator("title", "tagline", "problem", "solution")
     @classmethod

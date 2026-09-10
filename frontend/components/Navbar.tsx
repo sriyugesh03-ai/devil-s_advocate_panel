@@ -19,10 +19,12 @@ import {
   ShieldCheck, 
   Menu, 
   X,
-  User 
+  User,
+  Zap
 } from "lucide-react";
 import { checkBackendHealth } from "../lib/api";
 import { useAppAuth } from "./AuthProvider";
+import McpModal from "./McpModal";
 
 function ClerkAuthButtons() {
   const { user, isLoaded } = useUser();
@@ -67,6 +69,7 @@ export default function Navbar() {
   const { isClerkConfigured } = useAppAuth();
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mcpModalOpen, setMcpModalOpen] = useState(false);
 
   useEffect(() => {
     checkBackendHealth()
@@ -84,6 +87,8 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-darkbg-900/80 backdrop-blur-xl">
+      <McpModal isOpen={mcpModalOpen} onClose={() => setMcpModalOpen(false)} />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         {/* Brand Logo */}
@@ -102,7 +107,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-4 lg:gap-6">
           <Link
             href="/pitch"
             className={`flex items-center gap-2 text-sm font-medium transition-colors px-3 py-1.5 rounded-lg ${
@@ -126,6 +131,19 @@ export default function Navbar() {
             <History className="w-4 h-4" />
             <span>Pitch History</span>
           </Link>
+
+          {/* MCP Connectors Trigger Button */}
+          <button
+            onClick={() => setMcpModalOpen(true)}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/60 transition-all shadow-sm shadow-cyan-950/30"
+            title="Inspect active Model Context Protocol (MCP) live tools"
+          >
+            <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            <span>MCP Connectors</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-[10px] font-mono text-cyan-200">
+              3 Live
+            </span>
+          </button>
         </nav>
 
         {/* Right Section: Backend Status + Clerk Auth */}
@@ -193,6 +211,17 @@ export default function Navbar() {
             <History className="w-4 h-4 text-rose-400" />
             <span>Pitch History</span>
           </Link>
+
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setMcpModalOpen(true);
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyan-300 hover:bg-cyan-950/40 border border-cyan-500/20"
+          >
+            <Zap className="w-4 h-4 text-cyan-400" />
+            <span>MCP Connectors (3 Live)</span>
+          </button>
 
           <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
             <SignedOut>

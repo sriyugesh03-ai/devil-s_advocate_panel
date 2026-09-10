@@ -1,11 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
-import { submitPitch } from '../lib/api';
+import { submitPitch, parsePitchDeck } from '../lib/api';
 import { useAppAuth } from './AuthProvider';
-import { Flame, ArrowRight, Loader2, Sparkles, Building2, Lightbulb, Users, DollarSign } from 'lucide-react';
+import { 
+  Flame, 
+  ArrowRight, 
+  Loader2, 
+  Sparkles, 
+  Building2, 
+  Lightbulb, 
+  Users, 
+  DollarSign, 
+  Github, 
+  FileUp, 
+  CheckCircle,
+  Zap
+} from 'lucide-react';
 
 interface PitchFormBaseProps {
   getToken?: () => Promise<string | null>;
@@ -13,7 +26,10 @@ interface PitchFormBaseProps {
 
 function PitchFormBase({ getToken }: PitchFormBaseProps) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [deckParsing, setDeckParsing] = useState(false);
+  const [deckParsedSuccess, setDeckParsedSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -26,10 +42,44 @@ function PitchFormBase({ getToken }: PitchFormBaseProps) {
     traction: '3 enterprise pilots signed ($120k ARR pipeline), 400 waitlist signups.',
     competition: 'Datadog, Dynatrace, Gremlin (none have predictive eBPF auto-healing).',
     fundraising_goal: '$2.5M Seed at $15M pre-money valuation',
+    github_url: 'https://github.com/tiangolo/fastapi',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleDeckUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setError('Please upload a valid .pdf pitch deck file.');
+      return;
+    }
+
+    setDeckParsing(true);
+    setError(null);
+    try {
+      const parsed = await parsePitchDeck(file);
+      setFormData(prev => ({
+        ...prev,
+        title: parsed.title || prev.title,
+        tagline: parsed.tagline || prev.tagline,
+        problem: parsed.problem || prev.problem,
+        solution: parsed.solution || prev.solution,
+        target_market: parsed.target_market || prev.target_market,
+        business_model: parsed.business_model || prev.business_model,
+        traction: parsed.traction || prev.traction,
+        competition: parsed.competition || prev.competition,
+        fundraising_goal: parsed.fundraising_goal || prev.fundraising_goal,
+      }));
+      setDeckParsedSuccess(`Auto-filled pitch from "${file.name}" via MCP Parser!`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to parse pitch deck PDF.');
+    } finally {
+      setDeckParsing(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,15 +106,53 @@ function PitchFormBase({ getToken }: PitchFormBaseProps) {
 
   return (
     <form onSubmit={handleSubmit} className="glass-panel p-6 sm:p-10 rounded-2xl border border-white/10 shadow-2xl max-w-4xl mx-auto text-left space-y-6">
-      <div className="border-b border-white/10 pb-4 mb-6">
-        <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
-          <Flame className="w-6 h-6 text-rose-500" />
-          <span>Startup Pitch Dossier</span>
-        </h2>
-        <p className="text-sm text-slate-400 mt-1">
-          Provide your startup details. The 3 panel agents will read your pitch and commence Round 1 interrogation.
-        </p>
+      <div className="border-b border-white/10 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
+            <Flame className="w-6 h-6 text-rose-500" />
+            <span>Startup Pitch Dossier</span>
+          </h2>
+          <p className="text-sm text-slate-400 mt-1">
+            Fill your startup details or upload your pitch deck. The 3 panel agents will cross-examine your pitch in Round 1.
+          </p>
+        </div>
+
+        {/* MCP PDF Deck Upload Trigger */}
+        <div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleDeckUpload}
+            accept=".pdf"
+            className="hidden"
+          />
+          <button
+            type="button"
+            disabled={deckParsing}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/60 transition-all text-xs font-semibold shadow-sm"
+          >
+            {deckParsing ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                <span>MCP Parsing Deck...</span>
+              </>
+            ) : (
+              <>
+                <FileUp className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Upload Pitch Deck (.PDF)</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
+
+      {deckParsedSuccess && (
+        <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{deckParsedSuccess}</span>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-300 text-sm">
@@ -205,6 +293,30 @@ function PitchFormBase({ getToken }: PitchFormBaseProps) {
             className="w-full px-4 py-2.5 rounded-xl bg-darkbg-800 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors text-sm"
           />
         </div>
+      </div>
+
+      {/* GitHub Repository (Technical Diligence MCP) */}
+      <div className="p-4 rounded-xl bg-darkbg-800/80 border border-cyan-500/20 space-y-2">
+        <label className="block text-xs font-semibold uppercase tracking-wider text-cyan-300 flex items-center justify-between">
+          <span className="flex items-center gap-1.5">
+            <Github className="w-4 h-4 text-violet-400" />
+            GitHub Repository (Technical Diligence MCP)
+          </span>
+          <span className="text-[10px] text-cyan-400/80 font-normal">
+            Optional • Audits commits & architecture
+          </span>
+        </label>
+        <input
+          type="url"
+          name="github_url"
+          value={formData.github_url}
+          onChange={handleChange}
+          placeholder="https://github.com/your-org/your-repo"
+          className="w-full px-4 py-2.5 rounded-lg bg-darkbg-900 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm font-mono"
+        />
+        <p className="text-[11px] text-slate-400">
+          The <strong>Skeptical VC</strong> will audit commit velocity, language ratios, and open-source dependencies via the GitHub MCP tool.
+        </p>
       </div>
 
       {/* Submit Button */}

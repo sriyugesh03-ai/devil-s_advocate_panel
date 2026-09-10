@@ -13,6 +13,8 @@ export interface StartupPitch {
   traction?: string;
   competition?: string;
   fundraising_goal?: string;
+  github_url?: string;
+  pitch_deck_filename?: string;
   created_at?: string;
 }
 

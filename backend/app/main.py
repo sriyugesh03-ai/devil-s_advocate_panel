@@ -23,6 +23,7 @@ from backend.app.api.pitches import router as pitches_router
 from backend.app.api.sessions import router as sessions_router
 from backend.app.api.verdict import router as verdict_router
 from backend.app.api.pdf import router as pdf_router
+from backend.app.api.mcp import router as mcp_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("devils_advocate")
@@ -65,6 +66,7 @@ app.include_router(pitches_router, prefix="/api")
 app.include_router(sessions_router, prefix="/api")
 app.include_router(verdict_router, prefix="/api")
 app.include_router(pdf_router, prefix="/api")
+app.include_router(mcp_router, prefix="/api")
 
 @app.get("/health", tags=["Health"])
 async def health_check():
