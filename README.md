@@ -149,6 +149,12 @@ Here is the complete chronological record of how the Devil's Advocate Panel was 
 - **Same-Origin Proxy Solution**: Built `/api/proxy/[...path]` in Next.js to eliminate CORS preflight latency and prevent browser adblockers (`ERR_BLOCKED_BY_CLIENT`) from interfering with backend requests.
 - **Live Verification**: Validated end-to-end user flow on Render production services, confirmed green 🟢 **API Online** status indicator, and verified all 17 unit/integration test suites.
 
+### Phase 8: Model Context Protocol (MCP) Live Diligence Integration
+- **Live Web & Competitor Search (Tavily MCP)**: Integrated into the Market Realist agent to automatically discover stealth competitors, check pricing pages, and verify funding events.
+- **Technical Codebase Diligence (GitHub MCP)**: Integrated into the Skeptical VC agent to audit repository commit velocity, language ratios, and open-source dependencies.
+- **Pitch Deck Ingestion (PDF Parser MCP)**: Added automated slide extraction and LLM parsing to auto-populate the pitch form from `.pdf` pitch decks.
+- **Navigation Bar MCP Hub**: Built interactive **"🔌 MCP Connectors"** indicator in the navbar opening a glassmorphic modal with real-time health, quota, and tool capability statuses.
+
 ---
 
 ## 🧰 Tech Stack Matrix
@@ -269,7 +275,9 @@ npm run build
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/health` | System health check (MongoDB Atlas & RAG status) |
+| `GET` | `/api/mcp/status` | Live status, quotas, and capabilities of connected MCP tools |
 | `POST` | `/api/pitches/` | Submit new startup pitch dossier and initialize session |
+| `POST` | `/api/pitches/parse-deck` | Ingest and parse `.pdf` pitch deck into structured form fields |
 | `GET` | `/api/pitches/history` | Retrieve pitch history for authenticated user |
 | `GET` | `/api/sessions/{session_id}` | Get session details, dialogue history, and current round state |
 | `POST` | `/api/sessions/{session_id}/respond` | Submit founder defense for the current interrogation round |
