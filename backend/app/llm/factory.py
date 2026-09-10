@@ -5,6 +5,7 @@ from backend.app.llm.base import BaseLLMAdapter
 from backend.app.llm.gemini import GeminiAdapter
 from backend.app.llm.groq import GroqAdapter
 from backend.app.core.config import settings
+from backend.app.core.cache import prompt_cache
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
@@ -23,8 +24,18 @@ class ResilientLLMAdapter(BaseLLMAdapter):
         temperature: float = 0.7,
         max_tokens: int = 2048,
     ) -> str:
+        # Check cache first
+        cached = prompt_cache.get(
+            prompt=prompt,
+            system_instruction=system_instruction or "",
+            temperature=temperature,
+            model=getattr(self.primary, 'model', ''),
+        )
+        if cached is not None:
+            return cached
+
         try:
-            return await self.primary.generate_text(
+            result = await self.primary.generate_text(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=temperature,
@@ -34,13 +45,24 @@ class ResilientLLMAdapter(BaseLLMAdapter):
             logger.warning(f"Primary LLM adapter failed: {e}.")
             if self.secondary:
                 logger.info("Flipping to secondary LLM adapter fallback...")
-                return await self.secondary.generate_text(
+                result = await self.secondary.generate_text(
                     prompt=prompt,
                     system_instruction=system_instruction,
                     temperature=temperature,
                     max_tokens=max_tokens,
                 )
-            raise e
+            else:
+                raise e
+
+        # Store in cache
+        prompt_cache.put(
+            prompt=prompt,
+            response=result,
+            system_instruction=system_instruction or "",
+            temperature=temperature,
+            model=getattr(self.primary, 'model', ''),
+        )
+        return result
 
     async def generate_structured(
         self,
@@ -49,8 +71,21 @@ class ResilientLLMAdapter(BaseLLMAdapter):
         system_instruction: Optional[str] = None,
         temperature: float = 0.2,
     ) -> T:
+        cache_key_prefix = f"STRUCTURED_{response_model.__name__}::"
+        cached_json = prompt_cache.get(
+            prompt=cache_key_prefix + prompt,
+            system_instruction=system_instruction or "",
+            temperature=temperature,
+            model=getattr(self.primary, 'model', ''),
+        )
+        if cached_json is not None:
+            try:
+                return response_model.model_validate_json(cached_json)
+            except Exception:
+                pass
+
         try:
-            return await self.primary.generate_structured(
+            result = await self.primary.generate_structured(
                 prompt=prompt,
                 response_model=response_model,
                 system_instruction=system_instruction,
@@ -60,13 +95,28 @@ class ResilientLLMAdapter(BaseLLMAdapter):
             logger.warning(f"Primary LLM structured generation failed: {e}.")
             if self.secondary:
                 logger.info("Flipping to secondary LLM adapter fallback for structured output...")
-                return await self.secondary.generate_structured(
+                result = await self.secondary.generate_structured(
                     prompt=prompt,
                     response_model=response_model,
                     system_instruction=system_instruction,
                     temperature=temperature,
                 )
-            raise e
+            else:
+                raise e
+
+        # Store in cache
+        try:
+            prompt_cache.put(
+                prompt=cache_key_prefix + prompt,
+                response=result.model_dump_json(),
+                system_instruction=system_instruction or "",
+                temperature=temperature,
+                model=getattr(self.primary, 'model', ''),
+            )
+        except Exception:
+            pass
+
+        return result
 
 class LLMFactory:
     """Factory creating resilient LLM adapters with auto-fallback between Gemini and Groq."""

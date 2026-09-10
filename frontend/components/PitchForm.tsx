@@ -20,7 +20,7 @@ import {
   Zap,
   Power
 } from 'lucide-react';
-import { getMcpEnabledState, MCP_STORAGE_KEY } from './McpModal';
+import { getMcpEnabledState, toggleMcpConnector, McpEnabledState } from '../lib/mcp-state';
 
 interface PitchFormBaseProps {
   getToken?: () => Promise<string | null>;
@@ -47,7 +47,7 @@ function PitchFormBase({ getToken }: PitchFormBaseProps) {
     github_url: 'https://github.com/tiangolo/fastapi',
   });
 
-  const [mcpState, setMcpState] = useState<Record<string, boolean>>({
+  const [mcpState, setMcpState] = useState<McpEnabledState>({
     'tavily-search': true,
     'github-diligence': true,
     'deck-parser': true,
@@ -63,16 +63,9 @@ function PitchFormBase({ getToken }: PitchFormBaseProps) {
     return () => window.removeEventListener('mcp-config-changed', syncMcpState);
   }, []);
 
-  const toggleMcpTool = (id: string) => {
-    const nextState = {
-      ...mcpState,
-      [id]: !mcpState[id]
-    };
+  const toggleMcpTool = (id: keyof McpEnabledState) => {
+    const nextState = toggleMcpConnector(id);
     setMcpState(nextState);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(MCP_STORAGE_KEY, JSON.stringify(nextState));
-      window.dispatchEvent(new Event('mcp-config-changed'));
-    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

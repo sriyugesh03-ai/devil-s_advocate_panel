@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import AuthProvider from "../components/AuthProvider";
-import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,16 +26,14 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-darkbg-900 text-slate-100 min-h-screen selection:bg-rose-500/30 selection:text-rose-200">
         <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-950/20 via-darkbg-900 to-darkbg-900" />
         <AuthProvider>
-          <div className="relative z-10 flex flex-col min-h-screen">
-            <Navbar />
-            <div className="flex-1 flex flex-col">
+          <div className="relative z-10 flex min-h-screen">
+            <Sidebar />
+            <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
               {children}
-            </div>
+            </main>
           </div>
         </AuthProvider>
       </body>
     </html>
   );
 }
-
-

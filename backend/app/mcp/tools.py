@@ -4,6 +4,7 @@ import io
 from typing import Dict, Any, List, Optional
 import httpx
 from pypdf import PdfReader
+from langchain_core.tools import tool, StructuredTool
 from backend.app.core.config import settings
 from backend.app.llm.factory import get_llm_service
 from backend.app.schemas.pitch import StartupPitchCreate
@@ -79,7 +80,7 @@ class GitHubDiligenceTool:
             return owner, repo
         return None
 
-    async def audit_repository(self, repo_url: str) -> Dict[str, Any]:
+    async def audit_repository(self, repo_url: str, custom_token: Optional[str] = None) -> Dict[str, Any]:
         parsed = self._extract_owner_repo(repo_url)
         if not parsed:
             return {"status": "error", "message": "Invalid GitHub repository URL format."}
@@ -89,8 +90,9 @@ class GitHubDiligenceTool:
             "Accept": "application/vnd.github.v3+json",
             "User-Agent": "Devils-Advocate-Panel-MCP"
         }
-        if self.token:
-            headers["Authorization"] = f"Bearer {self.token}"
+        token_to_use = (custom_token or self.token or "").strip()
+        if token_to_use:
+            headers["Authorization"] = f"Bearer {token_to_use}"
 
         try:
             async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
@@ -151,7 +153,7 @@ class PitchDeckParserTool:
         try:
             reader = PdfReader(io.BytesIO(pdf_bytes))
             text_pages = []
-            for i, page in enumerate(reader.pages[:25]):  # limit to first 25 slides
+            for i, page in enumerate(reader.pages[:30]):  # up to 30 slides
                 page_text = page.extract_text() or ""
                 if page_text.strip():
                     text_pages.append(f"--- Slide {i+1} ---\n{page_text.strip()}")
@@ -163,16 +165,92 @@ class PitchDeckParserTool:
     async def parse_deck_into_pitch(self, deck_text: str) -> StartupPitchCreate:
         system_prompt = (
             "You are an expert venture capitalist associate. "
-            "Extract structured startup pitch information from the provided pitch deck slides."
+            "Analyze and extract structured startup pitch information from the provided pitch deck slides.\n"
+            "Guidelines for extraction:\n"
+            "- title: Startup / Company / Project Name (short string)\n"
+            "- tagline: High-impact one-liner explaining what it does\n"
+            "- problem: Clear summary of customer pain points addressed in the deck\n"
+            "- solution: How the product/technology uniquely solves the problem\n"
+            "- target_market: Target customers, market segment, and TAM/SAM estimates\n"
+            "- business_model: Monetization approach, pricing structure, and revenue drivers\n"
+            "- traction: Current traction, pilots, metrics, users, or roadmap stage\n"
+            "- competition: Key competitors or alternative solutions mentioned or implied\n"
+            "- fundraising_goal: Amount seeking to raise and use of funds (concise summary)\n"
+            "If any field is not explicitly mentioned in the slides, make a concise, realistic inference based on the deck contents."
         )
         prompt = (
             f"=== PITCH DECK SLIDE CONTENTS ===\n"
-            f"{deck_text[:12000]}\n\n"
-            f"Extract and format the startup pitch into the required structured JSON format."
+            f"{deck_text[:14000]}\n\n"
+            f"Extract and format the pitch into valid JSON format."
         )
-        return await self.llm.generate_structured(
-            prompt=prompt,
-            response_model=StartupPitchCreate,
-            system_instruction=system_prompt,
-            temperature=0.2
-        )
+
+        try:
+            return await self.llm.generate_structured(
+                prompt=prompt,
+                response_model=StartupPitchCreate,
+                system_instruction=system_prompt,
+                temperature=0.2
+            )
+        except Exception as e:
+            logger.warning(f"Structured deck parsing encountered: {e}. Executing text fallback...")
+            try:
+                raw_json = await self.llm.generate_text(
+                    prompt=prompt + "\n\nCRITICAL: Return ONLY valid JSON with fields: title, tagline, problem, solution, target_market, business_model, traction, competition, fundraising_goal.",
+                    system_instruction=system_prompt,
+                    temperature=0.2
+                )
+                # Clean and parse JSON
+                cleaned = raw_json.strip()
+                if cleaned.startswith("```json"):
+                    cleaned = cleaned[7:]
+                if cleaned.startswith("```"):
+                    cleaned = cleaned[3:]
+                if cleaned.endswith("```"):
+                    cleaned = cleaned[:-3]
+                match = re.search(r"(\{.*\})", cleaned.strip(), re.DOTALL)
+                if match:
+                    import json
+                    parsed_dict = json.loads(match.group(1))
+                    return StartupPitchCreate(**parsed_dict)
+            except Exception as fallback_err:
+                logger.error(f"Fallback parsing also encountered error: {fallback_err}")
+
+            # Return a graceful basic pitch so user can review and edit in UI
+            return StartupPitchCreate(
+                title="Extracted Startup Pitch",
+                tagline="Pitch extracted from uploaded deck",
+                problem=deck_text[:500] if deck_text else "Identified market problem from uploaded deck.",
+                solution="Unique technical solution proposed in deck.",
+                target_market="Target market segment outlined in deck.",
+                business_model="Commercial model outlined in deck."
+            )
+
+
+
+# ==========================================
+# LangChain MCP Tool Adapters
+# ==========================================
+
+_tavily_instance = TavilySearchTool()
+_github_instance = GitHubDiligenceTool()
+
+@tool
+async def tavily_market_search(query: str) -> str:
+    """Searches live web intelligence and competitor pricing via Tavily MCP."""
+    res = await _tavily_instance.search(query, max_results=3)
+    if res.get("status") == "success":
+        results = res.get("results", [])
+        return "\n".join([f"- [{r.get('title')}] {r.get('content')}" for r in results])
+    return "No web intelligence found or tool unconfigured."
+
+@tool
+async def github_repo_audit(repo_url: str) -> str:
+    """Conducts technical code diligence on a founder's GitHub repository via GitHub MCP."""
+    res = await _github_instance.audit_repository(repo_url)
+    if res.get("status") == "success":
+        return f"Repo: {res.get('repo_name')} | Language: {res.get('primary_language')} | Stars: {res.get('stars')} | Commits in audit: {res.get('recent_commit_count')}"
+    return res.get("message", "GitHub audit failed.")
+
+def get_langchain_mcp_tools() -> List[Any]:
+    """Returns the list of LangChain MCP tools for agent tool binding."""
+    return [tavily_market_search, github_repo_audit]
