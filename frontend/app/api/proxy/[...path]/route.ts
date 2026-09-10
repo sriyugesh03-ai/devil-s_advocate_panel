@@ -1,29 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 
-                    process.env.NEXT_PUBLIC_API_URL || 
-                    "https://devils-advocate-backend.onrender.com";
+const BACKEND_BASE = (process.env.BACKEND_INTERNAL_URL || 
+                      process.env.NEXT_PUBLIC_API_URL || 
+                      "https://devils-advocate-backend.onrender.com").replace(/\/+$/, "");
 
-function getTargetUrl(request: NextRequest, pathParams: string[]): string {
-  const path = pathParams.join("/");
-  const search = request.nextUrl.search;
-  const baseUrl = BACKEND_URL.replace(/\/+$/, "");
-  return `${baseUrl}/${path}${search}`;
-}
-
-async function handleProxy(request: NextRequest, { params }: { params: { path: string[] } }) {
+async function handleProxy(request: NextRequest, { params }: { params: { path?: string[] } }) {
   try {
-    const targetUrl = getTargetUrl(request, params.path || []);
-    
-    // Forward headers (excluding host to prevent routing mismatch)
-    const headers = new Headers();
-    request.headers.forEach((value, key) => {
-      if (key.toLowerCase() !== "host" && key.toLowerCase() !== "connection") {
-        headers.set(key, value);
-      }
-    });
+    const pathSegments = params?.path || [];
+    const path = pathSegments.join("/");
+    const search = request.nextUrl.search || "";
+    const targetUrl = `${BACKEND_BASE}/${path}${search}`;
 
-    const options: RequestInit = {
+    const headers: Record<string, string> = {};
+    
+    // Selectively forward only necessary headers
+    const auth = request.headers.get("authorization");
+    if (auth) headers["authorization"] = auth;
+    
+    const cookie = request.headers.get("cookie");
+    if (cookie) headers["cookie"] = cookie;
+    
+    const contentType = request.headers.get("content-type");
+    if (contentType) headers["content-type"] = contentType;
+
+    headers["accept"] = "application/json, text/plain, */*";
+
+    const fetchOptions: RequestInit = {
       method: request.method,
       headers,
       cache: "no-store",
@@ -32,26 +34,22 @@ async function handleProxy(request: NextRequest, { params }: { params: { path: s
     if (request.method !== "GET" && request.method !== "HEAD") {
       const body = await request.text();
       if (body) {
-        options.body = body;
+        fetchOptions.body = body;
       }
     }
 
-    const backendResponse = await fetch(targetUrl, options);
-    const data = await backendResponse.text();
+    const res = await fetch(targetUrl, fetchOptions);
+    const responseBody = await res.text();
 
-    const responseHeaders = new Headers();
-    backendResponse.headers.forEach((value, key) => {
-      responseHeaders.set(key, value);
+    return new NextResponse(responseBody, {
+      status: res.status,
+      headers: {
+        "content-type": res.headers.get("content-type") || "application/json",
+      },
     });
-
-    return new NextResponse(data, {
-      status: backendResponse.status,
-      statusText: backendResponse.statusText,
-      headers: responseHeaders,
-    });
-  } catch (err: any) {
+  } catch (error: any) {
     return NextResponse.json(
-      { detail: `Proxy error reaching backend: ${err.message}` },
+      { detail: `Proxy failure: ${error.message}` },
       { status: 502 }
     );
   }

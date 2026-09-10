@@ -18,9 +18,15 @@ const isRealClerkKey =
   publishableKey !== "pk_test_Y2xlcmsuZGV2aWxzYWR2b2NhdGUuZGV2JA";
 
 export default function middleware(req: any, evt: any) {
+  // Never intercept API proxy routes
+  if (req.nextUrl.pathname.startsWith("/api/proxy")) {
+    return NextResponse.next();
+  }
+
   if (!isRealClerkKey) {
     return NextResponse.next();
   }
+
   return clerkMiddleware((auth, request) => {
     if (!isPublicRoute(request)) {
       auth().protect();
