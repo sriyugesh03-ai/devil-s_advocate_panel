@@ -28,6 +28,7 @@ frontend/out/
 frontend/build/
 .npm
 .eslintcache
+*.tsbuildinfo
 
 # Environment variables & secrets
 .env

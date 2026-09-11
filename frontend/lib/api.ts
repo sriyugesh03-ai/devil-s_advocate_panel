@@ -128,6 +128,7 @@ export function getPdfDownloadUrl(sessionId: string): string {
 export async function getMcpStatus(): Promise<{
   total_connectors: number;
   active_connectors: number;
+  oauth_app_configured?: boolean;
   connectors: Array<{
     id: string;
     name: string;
@@ -135,6 +136,9 @@ export async function getMcpStatus(): Promise<{
     icon: string;
     status: string;
     quota: string;
+    auth_type?: string;
+    is_oauth_connected?: boolean;
+    has_oauth_app?: boolean;
     description: string;
     capabilities: string[];
   }>;
@@ -193,4 +197,36 @@ export async function parsePitchDeck(file: File): Promise<Partial<StartupPitch>>
     body: formData,
   });
   return handleResponse<Partial<StartupPitch>>(res, 'Failed to parse pitch deck PDF');
+}
+
+export async function getGithubAuthUrl(redirectUri?: string): Promise<{ auth_url: string }> {
+  const baseUrl = getApiBaseUrl();
+  const uri = redirectUri || (typeof window !== 'undefined' ? `${window.location.origin}/connectors` : 'http://localhost:3000/connectors');
+  const res = await fetch(`${baseUrl}/api/mcp/oauth/github/authorize?redirect_uri=${encodeURIComponent(uri)}`, {
+    cache: 'no-store',
+  });
+  return handleResponse<{ auth_url: string }>(res, 'Failed to get GitHub authorization URL');
+}
+
+export async function exchangeGithubOAuthCode(code: string, redirectUri?: string, userId: string = 'default'): Promise<{ status: string; message: string }> {
+  const baseUrl = getApiBaseUrl();
+  const uri = redirectUri || (typeof window !== 'undefined' ? `${window.location.origin}/connectors` : 'http://localhost:3000/connectors');
+  const res = await fetch(`${baseUrl}/api/mcp/oauth/github/callback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      code,
+      redirect_uri: uri,
+      user_id: userId,
+    }),
+  });
+  return handleResponse<{ status: string; message: string }>(res, 'Failed to complete GitHub OAuth authentication');
+}
+
+export async function disconnectMcpProvider(provider: string, userId: string = 'default'): Promise<{ status: string; disconnected: boolean }> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/api/mcp/oauth/${provider}?user_id=${encodeURIComponent(userId)}`, {
+    method: 'DELETE',
+  });
+  return handleResponse<{ status: string; disconnected: boolean }>(res, `Failed to disconnect ${provider}`);
 }

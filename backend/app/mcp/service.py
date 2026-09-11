@@ -25,10 +25,17 @@ class MCPService:
         github_token = self.oauth_manager.get_token(user_id, "github") or settings.GITHUB_PERSONAL_ACCESS_TOKEN.strip()
         has_github = bool(github_token)
 
+        is_oauth_connected = bool(self.oauth_manager.get_token(user_id, "github"))
+        has_oauth_app = bool(self.oauth_manager.github_client_id and self.oauth_manager.github_client_secret)
+        
+        github_status = "connected" if (is_oauth_connected or has_github) else ("ready_to_connect" if has_oauth_app else "unconfigured")
+        github_auth_type = "OAuth 2.0 (Connected)" if is_oauth_connected else ("Personal Access Token" if has_github else ("OAuth 2.0 (Configured)" if has_oauth_app else "None"))
+
         return {
             "total_connectors": 3,
             "active_connectors": (1 if has_tavily else 0) + (1 if has_github else 0) + 1,
             "oauth_status": self.oauth_manager.get_oauth_status(user_id),
+            "oauth_app_configured": has_oauth_app,
             "connectors": [
                 {
                     "id": "tavily-search",
@@ -50,9 +57,11 @@ class MCPService:
                     "name": "GitHub Technical Diligence",
                     "provider": "GitHub MCP",
                     "icon": "github",
-                    "status": "connected" if has_github else "unconfigured",
+                    "status": github_status,
                     "quota": "5,000 requests/hr (Free Tier)",
-                    "auth_type": "OAuth 2.0 / PAT",
+                    "auth_type": github_auth_type,
+                    "is_oauth_connected": is_oauth_connected,
+                    "has_oauth_app": has_oauth_app,
                     "description": "Deep repository inspection, commit velocity tracking, language ratios, and technical moat verification.",
                     "capabilities": [
                         "Commit velocity analysis",

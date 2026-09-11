@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # MCP (Model Context Protocol) Settings
     TAVILY_API_KEY: str = ""
     GITHUB_PERSONAL_ACCESS_TOKEN: str = ""
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # LangSmith Tracing
     LANGSMITH_TRACING: bool = True

@@ -3,6 +3,8 @@ import httpx
 from typing import Optional, Dict, Any
 from backend.app.core.config import settings
 
+import os
+
 logger = logging.getLogger(__name__)
 
 # In-memory storage for user OAuth tokens (keyed by user_id or session_id / 'default')
@@ -14,13 +16,17 @@ class MCPOAuthManager:
     GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
     GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 
-    def __init__(self):
-        self.github_client_id = getattr(settings, "GITHUB_CLIENT_ID", "").strip()
-        self.github_client_secret = getattr(settings, "GITHUB_CLIENT_SECRET", "").strip()
+    @property
+    def github_client_id(self) -> str:
+        return (getattr(settings, "GITHUB_CLIENT_ID", "") or os.getenv("GITHUB_CLIENT_ID", "")).strip()
+
+    @property
+    def github_client_secret(self) -> str:
+        return (getattr(settings, "GITHUB_CLIENT_SECRET", "") or os.getenv("GITHUB_CLIENT_SECRET", "")).strip()
 
     def get_github_auth_url(self, redirect_uri: str, state: str = "mcp_github_auth") -> str:
         """Constructs the GitHub OAuth authorization URL."""
-        client_id = self.github_client_id or "github_mcp_client"
+        client_id = self.github_client_id
         scope = "repo,read:user,read:org"
         return (
             f"{self.GITHUB_AUTH_URL}?"
@@ -32,7 +38,9 @@ class MCPOAuthManager:
 
     async def exchange_github_code(self, code: str, redirect_uri: Optional[str] = None) -> Dict[str, Any]:
         """Exchanges an authorization code for a GitHub access token."""
-        if not self.github_client_id or not self.github_client_secret:
+        client_id = self.github_client_id
+        client_secret = self.github_client_secret
+        if not client_id or not client_secret:
             # If OAuth app credentials are not set in .env, simulate or return guidance
             logger.info("GitHub OAuth client credentials not set, using personal access token mode.")
             return {
@@ -41,8 +49,8 @@ class MCPOAuthManager:
             }
 
         payload = {
-            "client_id": self.github_client_id,
-            "client_secret": self.github_client_secret,
+            "client_id": client_id,
+            "client_secret": client_secret,
             "code": code,
         }
         if redirect_uri:
