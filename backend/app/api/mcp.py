@@ -31,6 +31,11 @@ async def get_mcp_status(user_id: str = Query("default")):
 @router.get("/oauth/github/authorize")
 async def get_github_oauth_url(redirect_uri: str = Query("http://localhost:3000/connectors")):
     """Returns the GitHub OAuth authorization URL for initiating browser login."""
+    if not mcp_oauth_manager.github_client_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="GITHUB_CLIENT_ID is not configured on the backend. Please add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to your environment variables."
+        )
     auth_url = mcp_oauth_manager.get_github_auth_url(redirect_uri=redirect_uri)
     return {"auth_url": auth_url}
 

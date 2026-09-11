@@ -108,9 +108,11 @@ export default function ConnectorsPage() {
     setOauthLoading(true);
     try {
       const redirectUri = `${window.location.origin}/connectors`;
-      const { auth_url } = await getGithubAuthUrl(redirectUri);
-      if (auth_url) {
-        window.location.href = auth_url;
+      const res = await getGithubAuthUrl(redirectUri);
+      if (res?.auth_url && !res.auth_url.includes('client_id=&')) {
+        window.location.href = res.auth_url;
+      } else {
+        throw new Error('GITHUB_CLIENT_ID is not configured in the backend environment variables. Please add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to your environment.');
       }
     } catch (err: any) {
       setNotification({
